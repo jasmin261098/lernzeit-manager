@@ -8,3 +8,4 @@ backend/prisma/migrations/20260604151959_init/migration.sql
 backend/prisma/migrations/migration_lock.toml
 frontend/package-lock.json
 .DS_Store
+.DS_Store
