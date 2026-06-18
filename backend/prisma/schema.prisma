@@ -9,7 +9,6 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url = env("DATABASE_URL")
 }
 
 model User {
@@ -66,7 +65,7 @@ model StudySession {
   userId Int
   user User @relation(fields: [userId], references: [id])
   goalId Int?
-  goal LearningGoal? @relation(fields: [userId], references: [id])
+  goal LearningGoal? @relation(fields: [goalId], references: [id])
   startTime DateTime
   endTime DateTime?
   duration Int?
