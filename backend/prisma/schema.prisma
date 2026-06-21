@@ -11,10 +11,73 @@ datasource db {
   provider = "sqlite"
 }
 
+model User {
+  id Int @id @default(autoincrement())
+  email String @unique
+  passwordHash String
+  createdAt DateTime @default(now())
+  goals LearningGoal[]
+  plans LearningPlan[]
+  sessions StudySession[]
+  reminders Reminder[]
+}
+
+model LearningGoal {
+  id Int @id @default(autoincrement())
+  userId Int 
+  user User @relation(fields: [userId], references: [id])
+  title String
+  description String?
+  targetHours Int
+  startDate DateTime
+  endDate DateTime
+  status String @default("open") //open | in_progress | done
+  createdAt DateTime @default(now())
+  sessions StudySession[]
+}
+
+//Grobplanung
+model LearningPlan {
+  id Int @id @default(autoincrement())
+  userId Int
+  user User @relation(fields: [userId], references: [id])
+  title String
+  startDate DateTime
+  endDate DateTime
+  monthlyPlans MonthlyPlan[]
+  createdAt DateTime @default(now())
+}
+
+//Detailplanung
+model MonthlyPlan {
+  id Int @id @default(autoincrement())
+  learningPlanId Int 
+  learningPlan LearningPlan @relation(fields: [learningPlanId], references: [id])
+  month Int
+  year Int
+  plannedHours Int
+  notes String?
+  createdAt DateTime @default(now())
+}
+
 model StudySession {
-  id        Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
+  userId Int
+  user User @relation(fields: [userId], references: [id])
+  goalId Int?
+  goal LearningGoal? @relation(fields: [goalId], references: [id])
   startTime DateTime
-  endTime   DateTime?
-  duration  Int?
-  topic     String?
+  endTime DateTime?
+  duration Int?
+  topic String?
+}
+
+model Reminder {
+  id Int @id @default(autoincrement())
+  userId Int
+  user User @relation(fields: [userId], references: [id])
+  message String
+  scheduledAt DateTime
+  sent Boolean @default(false)
+  createdAt DateTime @default(now())
 }
