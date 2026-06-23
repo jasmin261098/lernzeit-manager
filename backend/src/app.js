@@ -9,7 +9,7 @@ app.use(express.json());
 app.use('/auth', require('./routes/auth'));
 app.use('/goals', require('./routes/goals'));
 app.use('/plans', require('./routes/plans'));
-app.use('sessions', require('./routes/sessions'));
+app.use('/sessions', require('./routes/sessions'));
 app.use('/reminders', require('./routes/reminders'));
 
 const PORT = process.env.PORT || 3000;
