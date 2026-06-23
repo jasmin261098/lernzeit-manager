@@ -19,7 +19,7 @@ exports.update = async (req, res) => {
     const goal = await prisma.learningGoal.findFirst({
         where: { id: Number(req.params.id), userId:req.user.userId }
     });
-    if (!goals) return res.status(404).json({ error: 'Nicht gefunden' });
+    if (!goal) return res.status(404).json({ error: 'Nicht gefunden' });
 
     const updated = await prisma.learningGoal.update({
         where: { id: Number(req.params.id) },
