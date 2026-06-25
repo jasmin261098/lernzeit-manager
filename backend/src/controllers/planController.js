@@ -1,6 +1,6 @@
-const prisma = require('../prisma');
+import { prisma } from '../prisma.js';
 
-exports.getAll = async (req, res) => {
+export const getAll = async (req, res) => {
 const plans = await prisma.learningPlan.findMany({
     where: { userId: req.user.userId },
     include: { monthlyPlans: true }
@@ -8,7 +8,7 @@ const plans = await prisma.learningPlan.findMany({
 res.json(plans);
 };
 
-exports.create = async (req, res) => {
+export const create = async (req, res) => {
 const { title, startDate, endDate } = req.body;
 if (!title || !startDate || !endDate) {
     return res.status(400).json({ error: 'title, startDate und endDate erforderlich' });
@@ -24,7 +24,7 @@ const plan = await prisma.learningPlan.create({
 res.status(201).json(plan);
 };
 
-exports.update = async (req, res) => {
+export const update = async (req, res) => {
 const plan = await prisma.learningPlan.findFirst({
     where: { id: Number(req.params.id), userId: req.user.userId }
 });
@@ -42,7 +42,7 @@ const updated = await prisma.learningPlan.update({
 res.json(updated);
 };
 
-exports.remove = async (req, res) => {
+export const remove = async (req, res) => {
 const plan = await prisma.learningPlan.findFirst({
     where: { id: Number(req.params.id), userId: req.user.userId }
 });
@@ -52,7 +52,7 @@ await prisma.learningPlan.delete({ where: { id: Number(req.params.id) } });
 res.status(204).send();
 };
 
-exports.getMonthly = async (req, res) => {
+export const getMonthly = async (req, res) => {
 const month = Number(req.params.month);
 const year  = Number(req.query.year) || new Date().getFullYear();
 

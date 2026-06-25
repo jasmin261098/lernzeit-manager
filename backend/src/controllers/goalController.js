@@ -1,13 +1,13 @@
-const prisma = require('../prisma');
+import { prisma } from '../prisma.js';
 
-exports.getAll = async (req, res) => {
+export const getAll = async (req, res) => {
     const goals = await prisma.learningGoal.findMany({
         where: { userId: req.user.userId }
     });
     res.json(goals);
 };
 
-exports.create = async (req, res) => {
+export const create = async (req, res) => {
     const { title, description, targetHours, startDate, endDate } = req.body;
     const goal = await prisma.learningGoal.create({
         data: { userId: req.user.userId, title, description, targetHours, startDate: new Date(startDate), endDate: new Date(endDate) }
@@ -15,7 +15,7 @@ exports.create = async (req, res) => {
     res.status(201).json(goal);
 };
 
-exports.update = async (req, res) => {
+export const update = async (req, res) => {
     const goal = await prisma.learningGoal.findFirst({
         where: { id: Number(req.params.id), userId:req.user.userId }
     });
@@ -28,7 +28,7 @@ exports.update = async (req, res) => {
     res.json(updated);
 };
 
-exports.remove = async (req, res) => {
+export const remove = async (req, res) => {
     const goal = await prisma.learningGoal.findFirst({
         where: { id: Number(req.params.id), userId: req.user.userId }
     });
@@ -36,9 +36,9 @@ exports.remove = async (req, res) => {
 
     await prisma.learningGoal.delete({ where: { id: Number(req.params.id) } });
     res.status(204).send();
-}
+};
 
-exports.updateStatus = async (req, res) => {
+export const updateStatus = async (req, res) => {
     const { status } = req.body;
     if (!['open', 'in_progress', 'done'].includes(status)) {
         return res.status(400).json({ error: 'Ungültiger Status' });

@@ -1,6 +1,8 @@
-const router = require('express').Router();
-const { body, validationResult } = require('express-validator');
-const { register, login } = require('../controllers/authController');
+import { Router } from 'express';
+import { body, validationResult } from 'express-validator';
+import { register, login } from '../controllers/authController.js';
+
+const router = Router();
 
 const validate = (req, res, next) => {
     const errors = validationResult(req);
@@ -18,4 +20,4 @@ router.post('/login', [
     body('password').notEmpty()
 ], validate, login);
 
-module.exports = router;
+export default router;

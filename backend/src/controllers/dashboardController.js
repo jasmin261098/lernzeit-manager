@@ -1,6 +1,6 @@
-const prisma = require('../prisma');
+import { prisma } from '../prisma.js';
 
-exports.getDashboard = async (req, res) => {
+export const getDashboard = async (req, res) => {
     const userId = req.user.userId;
 
     const [goals, sessions] = await Promise.all([

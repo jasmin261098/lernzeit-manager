@@ -1,6 +1,6 @@
-const prisma = require('../prisma');
+import { prisma } from '../prisma.js';
 
-exports.create = async (req, res) => {
+export const create = async (req, res) => {
     const { message, scheduledAt } = req.body;
     if (!message || !scheduledAt) {
         return res.status(400).json({ error: 'message und scheduledAt erforderlich' });
@@ -11,7 +11,7 @@ exports.create = async (req, res) => {
     res.status(201).json(reminder);
 };
 
-exports.getAll = async (req, res) => {
+export const getAll = async (req, res) => {
     const reminders = await prisma.reminder.findMany({
         where: { userId: req.user.userId },
         orderBy: { scheduledAt: 'asc' }

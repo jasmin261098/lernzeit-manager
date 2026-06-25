@@ -5,7 +5,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-COPY . .
+COPY prisma ./prisma
+COPY src ./src
+COPY prisma.config.ts ./
 
 RUN npx prisma generate
 RUN npx prisma db push

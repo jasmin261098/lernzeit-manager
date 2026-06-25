@@ -1,7 +1,9 @@
-const router = require('express').Router();
-const { body, validationResult } = require('express-validator');
-const auth = require('../middleware/auth');
-const c = require('../controllers/sessionController');
+import { Router } from 'express';
+import { body, validationResult } from 'express-validator';
+import auth from '../middleware/auth.js';
+import * as c from '../controllers/sessionController.js';
+
+const router = Router();
 
 const validate = (req, res, next) => {
     const errors = validationResult(req);
@@ -18,4 +20,4 @@ router.post('/start', [
 ], validate, c.start);
 router.patch('/:id/stop', c.stop);
 
-module.exports = router;
+export default router;

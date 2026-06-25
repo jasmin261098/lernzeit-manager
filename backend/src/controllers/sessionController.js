@@ -1,6 +1,6 @@
-const prisma = require('../prisma');
+import { prisma } from '../prisma.js';
 
-exports.getAll = async (req, res) => {
+export const getAll = async (req, res) => {
     const sessions = await prisma.studySession.findMany({
         where: { userId: req.user.userId },
         orderBy: { startTime: 'desc' },
@@ -9,7 +9,7 @@ exports.getAll = async (req, res) => {
     res.json(sessions);
 };
 
-exports.start = async (req, res) => {
+export const start = async (req, res) => {
     const { goalId, topic } = req.body;
     const session = await prisma.studySession.create({
         data: { userId: req.user.userId, goalId, startTime: new Date(), topic }
@@ -17,7 +17,7 @@ exports.start = async (req, res) => {
     res.status(201).json(session);
 };
 
-exports.stop = async (req, res) => {
+export const stop = async (req, res) => {
     const id = Number(req.params.id);
     const session = await prisma.studySession.findFirst({
         where: { id, userId: req.user.userId }

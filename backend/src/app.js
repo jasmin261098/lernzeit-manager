@@ -1,19 +1,25 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const cron = require('node-cron');
-const prisma = require('./prisma');
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import cron from 'node-cron';
+import { prisma } from './prisma.js';
+import authRoutes from './routes/auth.js';
+import goalRoutes from './routes/goals.js';
+import planRoutes from './routes/plans.js';
+import sessionRoutes from './routes/sessions.js';
+import reminderRoutes from './routes/reminders.js';
+import dashboardRoutes from './routes/dashboard.js';
 
 const app = express();
 app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(express.json());
 
-app.use('/auth', require('./routes/auth'));
-app.use('/goals', require('./routes/goals'));
-app.use('/plans', require('./routes/plans'));
-app.use('/sessions', require('./routes/sessions'));
-app.use('/reminders', require('./routes/reminders'));
-app.use('/dashboard', require('./routes/dashboard'));
+app.use('/auth', authRoutes);
+app.use('/goals', goalRoutes);
+app.use('/plans', planRoutes);
+app.use('/sessions', sessionRoutes);
+app.use('/reminders', reminderRoutes);
+app.use('/dashboard', dashboardRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Backend läuft auf http://localhost:${PORT}`));

@@ -1,7 +1,9 @@
-const router = require('express').Router();
-const { body, validationResult } = require('express-validator');
-const auth = require('../middleware/auth');
-const c = require('../controllers/goalController');
+import { Router } from 'express';
+import { body, validationResult } from 'express-validator';
+import auth from '../middleware/auth.js';
+import * as c from '../controllers/goalController.js';
+
+const router = Router();
 
 const validate = (req, res, next) => {
     const errors = validationResult(req);
@@ -29,4 +31,4 @@ router.patch('/:id/status', [
     body('status').isIn(['open', 'in_progress', 'done'])
 ], validate, c.updateStatus);
 
-module.exports = router;
+export default router;

@@ -1,8 +1,8 @@
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const prisma = require('../prisma');
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { prisma } from '../prisma.js';
 
-exports.register = async (req, res) => {
+export const register = async (req, res) => {
     const { email, password } = req.body;
     if(!email || !password) return res.status(400).json({ error: 'Email und Passwort erforderlich' });
 
@@ -15,7 +15,7 @@ exports.register = async (req, res) => {
     }
 };
 
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
     const { email, password } = req.body;
     const user = await prisma.user.findUnique( {where: { email } });
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {

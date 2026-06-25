@@ -1,7 +1,9 @@
-const router = require('express').Router();
-const { body, validationResult } = require('express-validator');
-const auth = require('../middleware/auth');
-const c = require('../controllers/reminderController');
+import { Router } from 'express';
+import { body, validationResult } from 'express-validator';
+import auth from '../middleware/auth.js';
+import * as c from '../controllers/reminderController.js';
+
+const router = Router();
 
 const validate = (req, res, next) => {
     const errors = validationResult(req);
@@ -17,4 +19,4 @@ router.post('/', [
     body('scheduledAt').isISO8601()
 ], validate, c.create);
 
-module.exports = router;
+export default router;
