@@ -9,9 +9,8 @@ COPY prisma ./prisma
 COPY src ./src
 COPY prisma.config.ts ./
 
-RUN npx prisma generate
-RUN npx prisma db push
+COPY entrypoint.sh ./
 
 EXPOSE 3000
 
-CMD ["npm", "run", "dev"]
+ENTRYPOINT ["sh", "./entrypoint.sh"]
