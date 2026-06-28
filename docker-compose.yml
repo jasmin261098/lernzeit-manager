@@ -10,6 +10,7 @@ services:
     volumes:
       - ./backend/src:/app/src
       - ./backend/prisma:/app/prisma
+      - ./backend/dev.db:/app/dev.db
 
   frontend:
     build: ./frontend
@@ -17,6 +18,5 @@ services:
       - "5173:5173"
     volumes:
       - ./frontend/lernzeit-manager:/app
-      - /app/node_modules
     working_dir: /app
-    command: npm run dev
+    command: sh -c "npm install && npm run dev"

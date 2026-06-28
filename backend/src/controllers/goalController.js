@@ -21,9 +21,17 @@ export const update = async (req, res) => {
     });
     if (!goal) return res.status(404).json({ error: 'Nicht gefunden' });
 
+    const { title, description, targetHours, startDate, endDate, status } = req.body;
     const updated = await prisma.learningGoal.update({
         where: { id: Number(req.params.id) },
-        data: req.body
+        data: {
+            ...(title !== undefined       && { title }),
+            ...(description !== undefined && { description }),
+            ...(targetHours !== undefined && { targetHours }),
+            ...(startDate   !== undefined && { startDate: new Date(startDate) }),
+            ...(endDate     !== undefined && { endDate:   new Date(endDate) }),
+            ...(status      !== undefined && { status }),
+        }
     });
     res.json(updated);
 };

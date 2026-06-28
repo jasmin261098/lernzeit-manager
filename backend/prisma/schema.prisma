@@ -48,7 +48,7 @@ model LearningPlan {
 model MonthlyPlan {
   id Int @id @default(autoincrement())
   learningPlanId Int 
-  learningPlan LearningPlan @relation(fields: [learningPlanId], references: [id])
+  learningPlan LearningPlan @relation(fields: [learningPlanId], references: [id], onDelete: Cascade)
   month Int
   year Int
   plannedHours Int

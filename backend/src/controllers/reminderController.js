@@ -18,3 +18,12 @@ export const getAll = async (req, res) => {
     });
     res.json(reminders);
 };
+
+export const remove = async (req, res) => {
+    const reminder = await prisma.reminder.findFirst({
+        where: { id: Number(req.params.id), userId: req.user.userId }
+    });
+    if (!reminder) return res.status(404).json({ error: 'Nicht gefunden' });
+    await prisma.reminder.delete({ where: { id: Number(req.params.id) } });
+    res.status(204).send();
+};

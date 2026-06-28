@@ -11,6 +11,14 @@ export const getAll = async (req, res) => {
 
 export const start = async (req, res) => {
     const { goalId, topic } = req.body;
+
+    const openSession = await prisma.studySession.findFirst({
+        where: { userId: req.user.userId, endTime: null }
+    });
+    if (openSession) {
+        return res.status(409).json({ error: 'Es läuft bereits eine aktive Session' });
+    }
+
     const session = await prisma.studySession.create({
         data: { userId: req.user.userId, goalId, startTime: new Date(), topic }
     });
