@@ -70,3 +70,50 @@ const monthlyPlans = await prisma.monthlyPlan.findMany({
 });
 res.json(monthlyPlans);
 };
+
+export const createMonthly = async (req, res) => {
+const planId = Number(req.params.id);
+const plan = await prisma.learningPlan.findFirst({
+    where: { id: planId, userId: req.user.userId }
+});
+if (!plan) return res.status(404).json({ error: 'Plan nicht gefunden' });
+
+const { month, year, plannedHours, notes } = req.body;
+const entry = await prisma.monthlyPlan.create({
+    data: { learningPlanId: planId, month, year, plannedHours, notes }
+});
+res.status(201).json(entry);
+};
+
+export const updateMonthly = async (req, res) => {
+const entry = await prisma.monthlyPlan.findFirst({
+    where: {
+    id: Number(req.params.monthlyId),
+    learningPlan: { userId: req.user.userId }
+    }
+});
+if (!entry) return res.status(404).json({ error: 'Nicht gefunden' });
+
+const { plannedHours, notes } = req.body;
+const updated = await prisma.monthlyPlan.update({
+    where: { id: Number(req.params.monthlyId) },
+    data: {
+    ...(plannedHours !== undefined && { plannedHours }),
+    ...(notes       !== undefined && { notes }),
+    }
+});
+res.json(updated);
+};
+
+export const removeMonthly = async (req, res) => {
+const entry = await prisma.monthlyPlan.findFirst({
+    where: {
+    id: Number(req.params.monthlyId),
+    learningPlan: { userId: req.user.userId }
+    }
+});
+if (!entry) return res.status(404).json({ error: 'Nicht gefunden' });
+
+await prisma.monthlyPlan.delete({ where: { id: Number(req.params.monthlyId) } });
+res.status(204).send();
+};

@@ -5,6 +5,7 @@ export type Goal = {
   title: string;
   startDate: string;
   endDate: string | null;
+  targetHours: number;
   status: 'open' | 'in_progress' | 'done';
   userId: number;
   createdAt: string;
@@ -17,7 +18,6 @@ export type StudySession = {
   duration: number | null; // minutes; null while session is in progress
   startTime: string;
   userId: number;
-  createdAt: string;
 };
 
 export type LearningPlan = {
@@ -31,10 +31,11 @@ export type LearningPlan = {
 
 export type MonthlyPlan = {
   id: number;
+  learningPlanId: number;
   month: number;
   year: number;
   plannedHours: number;
-  userId: number;
+  notes: string | null;
   createdAt: string;
 };
 

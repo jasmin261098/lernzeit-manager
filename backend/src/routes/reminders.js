@@ -18,5 +18,6 @@ router.post('/', [
     body('message').notEmpty(),
     body('scheduledAt').isISO8601()
 ], validate, c.create);
+router.delete('/:id', c.remove);
 
 export default router;

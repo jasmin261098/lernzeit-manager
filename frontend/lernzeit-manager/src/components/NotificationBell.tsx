@@ -4,7 +4,7 @@ import {
   Settings, X, ToggleLeft, ToggleRight, Plus, Save,
 } from 'lucide-react';
 import { api } from '../lib/api';
-import { type Reminder } from '../lib/supabase';
+import { type Reminder, type StudySession } from '../lib/supabase';
 
 const SETTINGS_KEY = 'notification_settings';
 
@@ -39,8 +39,12 @@ function persistReadIds(ids: Set<number>) {
   localStorage.setItem(READ_KEY, JSON.stringify([...ids]));
 }
 
+const INACTIVITY_DAYS = 3;
+const INACTIVITY_ID = -1; // synthetic local-only notification id
+
 export default function NotificationBell() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [inactiveAlert, setInactiveAlert] = useState(false);
   const [readIds, setReadIds] = useState<Set<number>>(loadReadIds);
   const [settings, setSettings] = useState<NotifSettings>(loadSettings);
   const [open, setOpen] = useState(false);
@@ -58,7 +62,31 @@ export default function NotificationBell() {
     } catch { /* bell is non-critical, fail silently */ }
   }, []);
 
+  // Check inactivity: fetch sessions and compare most recent startTime
+  const checkInactivity = useCallback(async () => {
+    if (!settings.inactivity_alerts_enabled) {
+      setInactiveAlert(false);
+      return;
+    }
+    try {
+      const sessions = await api.get<StudySession[]>('/sessions');
+      const completed = sessions.filter((s) => s.duration !== null);
+      if (completed.length === 0) {
+        setInactiveAlert(false);
+        return;
+      }
+      const latest = completed.reduce((a, b) =>
+        new Date(a.startTime) > new Date(b.startTime) ? a : b
+      );
+      const daysSince = (Date.now() - new Date(latest.startTime).getTime()) / 86_400_000;
+      setInactiveAlert(daysSince >= INACTIVITY_DAYS);
+    } catch {
+      setInactiveAlert(false);
+    }
+  }, [settings.inactivity_alerts_enabled]);
+
   useEffect(() => { fetchReminders(); }, [fetchReminders]);
+  useEffect(() => { checkInactivity(); }, [checkInactivity]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -79,12 +107,15 @@ export default function NotificationBell() {
 
   const markAllRead = () => {
     const next = new Set(reminders.map((r) => r.id));
+    if (inactiveAlert) next.add(INACTIVITY_ID);
     setReadIds(next);
     persistReadIds(next);
   };
 
   const deleteReminder = async (id: number) => {
-    // Backend has no DELETE endpoint for reminders; remove from local view only
+    try {
+      await api.delete(`/reminders/${id}`);
+    } catch { /* ignore */ }
     setReminders((prev) => prev.filter((r) => r.id !== id));
     const next = new Set(readIds);
     next.delete(id);
@@ -112,12 +143,11 @@ export default function NotificationBell() {
     }
   };
 
-  const visibleReminders = reminders.filter(() => {
-    if (!settings.reminders_enabled) return false;
-    return true;
-  });
+  const visibleReminders = settings.reminders_enabled ? reminders : [];
 
-  const unreadCount = visibleReminders.filter((r) => !readIds.has(r.id)).length;
+  const inactivityUnread = inactiveAlert && !readIds.has(INACTIVITY_ID);
+  const unreadCount = visibleReminders.filter((r) => !readIds.has(r.id)).length
+    + (inactivityUnread ? 1 : 0);
 
   return (
     <div className="relative" ref={ref}>
@@ -216,7 +246,7 @@ export default function NotificationBell() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-900">Inaktivitäts-Warnung</p>
-                  <p className="text-xs text-slate-500">Nach mehr als 3 Tagen Pause</p>
+                  <p className="text-xs text-slate-500">Nach mehr als {INACTIVITY_DAYS} Tagen Pause</p>
                 </div>
                 <button
                   onClick={() => updateSetting('inactivity_alerts_enabled', !settings.inactivity_alerts_enabled)}
@@ -230,7 +260,25 @@ export default function NotificationBell() {
             </div>
           ) : (
             <div className="max-h-80 overflow-y-auto">
-              {visibleReminders.length === 0 ? (
+              {/* Inactivity alert */}
+              {inactiveAlert && (
+                <div className={`px-4 py-3 flex items-start gap-3 border-b border-slate-50 hover:bg-slate-50 transition-colors ${readIds.has(INACTIVITY_ID) ? 'opacity-60' : ''}`}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-amber-600 bg-amber-50">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-slate-900">Keine Lernaktivität seit {INACTIVITY_DAYS}+ Tagen</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Starte jetzt eine neue Lerneinheit!</p>
+                  </div>
+                  {!readIds.has(INACTIVITY_ID) && (
+                    <button onClick={() => markRead(INACTIVITY_ID)} className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="Als gelesen">
+                      <Check className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {visibleReminders.length === 0 && !inactiveAlert ? (
                 <div className="px-4 py-8 text-center text-sm text-slate-400">Keine Erinnerungen</div>
               ) : (
                 visibleReminders.map((r) => {

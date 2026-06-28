@@ -20,7 +20,7 @@ function AppContent() {
   }
 
   if (!user) {
-    return <AuthPage onLogin={() => {}} />;
+    return <AuthPage />;
   }
 
   return (

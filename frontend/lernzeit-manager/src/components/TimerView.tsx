@@ -46,6 +46,14 @@ export default function TimerView() {
     return () => { if (interval) clearInterval(interval); };
   }, [timerRunning]);
 
+  // Warn user before closing tab/window while a session is active
+  useEffect(() => {
+    if (activeSessionId === null) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [activeSessionId]);
+
   const handleStart = async () => {
     if (!topic.trim()) return;
     setError('');

@@ -17,10 +17,14 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
     const { email, password } = req.body;
-    const user = await prisma.user.findUnique( {where: { email } });
-    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-        return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
+    try {
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+            return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
+        }
+        const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        res.json({ token });
+    } catch {
+        res.status(500).json({ error: 'Anmeldung fehlgeschlagen' });
     }
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token });
 };

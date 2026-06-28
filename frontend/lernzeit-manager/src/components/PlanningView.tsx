@@ -4,9 +4,9 @@ import {
   ChevronRight, CheckCircle2, Circle, AlertCircle,
 } from 'lucide-react';
 import { api } from '../lib/api';
-import { type LearningPlan } from '../lib/supabase';
+import { type LearningPlan, type MonthlyPlan } from '../lib/supabase';
 
-type PlanWithMonthly = LearningPlan & { monthlyPlans?: unknown[] };
+type PlanWithMonthly = LearningPlan & { monthlyPlans: MonthlyPlan[] };
 
 const monthNames = [
   'Januar','Februar','März','April','Mai','Juni',
@@ -36,11 +36,20 @@ export default function PlanningView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Plan form
   const [showForm, setShowForm] = useState(false);
   const [editingPlan, setEditingPlan] = useState<LearningPlan | null>(null);
   const [formTitle, setFormTitle] = useState('');
   const [formStart, setFormStart] = useState('');
   const [formEnd, setFormEnd] = useState('');
+
+  // MonthlyPlan form
+  const [monthlyFormPlanId, setMonthlyFormPlanId] = useState<number | null>(null);
+  const [editingMonthly, setEditingMonthly] = useState<MonthlyPlan | null>(null);
+  const [mFormMonth, setMFormMonth] = useState(String(new Date().getMonth() + 1));
+  const [mFormYear, setMFormYear] = useState(String(CURRENT_YEAR));
+  const [mFormHours, setMFormHours] = useState('');
+  const [mFormNotes, setMFormNotes] = useState('');
 
   const fetchPlans = useCallback(async () => {
     try {
@@ -98,6 +107,62 @@ export default function PlanningView() {
     setError('');
     try {
       await api.delete(`/plans/${id}`);
+      fetchPlans();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  // Monthly plan helpers
+  const openAddMonthly = (planId: number) => {
+    setMonthlyFormPlanId(planId);
+    setEditingMonthly(null);
+    setMFormMonth(String(selectedMonth));
+    setMFormYear(String(CURRENT_YEAR));
+    setMFormHours('');
+    setMFormNotes('');
+  };
+
+  const openEditMonthly = (planId: number, entry: MonthlyPlan) => {
+    setMonthlyFormPlanId(planId);
+    setEditingMonthly(entry);
+    setMFormMonth(String(entry.month));
+    setMFormYear(String(entry.year));
+    setMFormHours(String(entry.plannedHours));
+    setMFormNotes(entry.notes ?? '');
+  };
+
+  const closeMonthlyForm = () => {
+    setMonthlyFormPlanId(null);
+    setEditingMonthly(null);
+  };
+
+  const saveMonthly = async () => {
+    if (!monthlyFormPlanId || !mFormHours) return;
+    setError('');
+    try {
+      const payload = {
+        month: Number(mFormMonth),
+        year: Number(mFormYear),
+        plannedHours: parseFloat(mFormHours),
+        notes: mFormNotes || undefined,
+      };
+      if (editingMonthly) {
+        await api.put(`/plans/${monthlyFormPlanId}/monthly/${editingMonthly.id}`, payload);
+      } else {
+        await api.post(`/plans/${monthlyFormPlanId}/monthly`, payload);
+      }
+      closeMonthlyForm();
+      fetchPlans();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  const deleteMonthly = async (planId: number, entryId: number) => {
+    setError('');
+    try {
+      await api.delete(`/plans/${planId}/monthly/${entryId}`);
       fetchPlans();
     } catch (e) {
       setError((e as Error).message);
@@ -233,6 +298,8 @@ export default function PlanningView() {
                 const endLabel = plan.endDate
                   ? new Date(plan.endDate).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })
                   : '—';
+                const isAddingMonthly = monthlyFormPlanId === plan.id && !editingMonthly;
+                const editingMonthlyForPlan = monthlyFormPlanId === plan.id && editingMonthly ? editingMonthly : null;
 
                 return (
                   <div key={plan.id} className="relative">
@@ -268,6 +335,92 @@ export default function PlanningView() {
                           </button>
                           <ChevronRight className="w-4 h-4 text-slate-300 ml-1" />
                         </div>
+                      </div>
+
+                      {/* Monthly plan entries */}
+                      <div className="mt-3 ml-16 space-y-2">
+                        {plan.monthlyPlans.map((mp) => (
+                          <div key={mp.id} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 text-xs">
+                            {editingMonthlyForPlan?.id === mp.id ? (
+                              <div className="flex items-center gap-2 flex-wrap w-full">
+                                <select
+                                  value={mFormMonth}
+                                  onChange={(e) => setMFormMonth(e.target.value)}
+                                  className="px-2 py-1 border border-slate-200 rounded text-xs bg-white focus:outline-none"
+                                >
+                                  {monthNames.map((n, i) => <option key={i} value={i + 1}>{n.slice(0, 3)}</option>)}
+                                </select>
+                                <input
+                                  type="number" value={mFormYear} onChange={(e) => setMFormYear(e.target.value)}
+                                  className="w-16 px-2 py-1 border border-slate-200 rounded text-xs focus:outline-none"
+                                />
+                                <input
+                                  type="number" min="0" step="0.5" value={mFormHours} onChange={(e) => setMFormHours(e.target.value)}
+                                  placeholder="Std."
+                                  className="w-16 px-2 py-1 border border-slate-200 rounded text-xs focus:outline-none"
+                                />
+                                <input
+                                  value={mFormNotes} onChange={(e) => setMFormNotes(e.target.value)}
+                                  placeholder="Notiz"
+                                  className="flex-1 px-2 py-1 border border-slate-200 rounded text-xs focus:outline-none"
+                                />
+                                <button onClick={saveMonthly} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors"><Save className="w-3.5 h-3.5" /></button>
+                                <button onClick={closeMonthlyForm} className="p-1 text-slate-400 hover:bg-slate-100 rounded transition-colors"><X className="w-3.5 h-3.5" /></button>
+                              </div>
+                            ) : (
+                              <>
+                                <span className="text-slate-700 font-medium">{monthNames[mp.month - 1]} {mp.year}</span>
+                                <span className="text-slate-500 ml-2">{mp.plannedHours} Std.{mp.notes ? ` · ${mp.notes}` : ''}</span>
+                                <div className="flex items-center gap-1 ml-auto">
+                                  <button onClick={() => openEditMonthly(plan.id, mp)} className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"><Pencil className="w-3 h-3" /></button>
+                                  <button onClick={() => deleteMonthly(plan.id, mp.id)} className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"><Trash2 className="w-3 h-3" /></button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* Add monthly entry form / button */}
+                        {isAddingMonthly ? (
+                          <div className="flex items-center gap-2 flex-wrap bg-sky-50 rounded-lg px-3 py-2">
+                            <select
+                              value={mFormMonth}
+                              onChange={(e) => setMFormMonth(e.target.value)}
+                              className="px-2 py-1 border border-slate-200 rounded text-xs bg-white focus:outline-none"
+                            >
+                              {monthNames.map((n, i) => <option key={i} value={i + 1}>{n.slice(0, 3)}</option>)}
+                            </select>
+                            <input
+                              type="number" value={mFormYear} onChange={(e) => setMFormYear(e.target.value)}
+                              className="w-16 px-2 py-1 border border-slate-200 rounded text-xs focus:outline-none"
+                            />
+                            <input
+                              type="number" min="0" step="0.5" value={mFormHours} onChange={(e) => setMFormHours(e.target.value)}
+                              placeholder="Std."
+                              className="w-16 px-2 py-1 border border-slate-200 rounded text-xs focus:outline-none"
+                            />
+                            <input
+                              value={mFormNotes} onChange={(e) => setMFormNotes(e.target.value)}
+                              placeholder="Notiz (optional)"
+                              className="flex-1 px-2 py-1 border border-slate-200 rounded text-xs focus:outline-none"
+                            />
+                            <button
+                              onClick={saveMonthly}
+                              disabled={!mFormHours}
+                              className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors disabled:opacity-30"
+                            >
+                              <Save className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={closeMonthlyForm} className="p-1 text-slate-400 hover:bg-slate-100 rounded transition-colors"><X className="w-3.5 h-3.5" /></button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => openAddMonthly(plan.id)}
+                            className="flex items-center gap-1.5 text-xs text-sky-600 hover:text-sky-700 font-medium px-1 py-0.5"
+                          >
+                            <Plus className="w-3 h-3" />Monat hinzufügen
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -316,6 +469,9 @@ export default function PlanningView() {
                   const status = planStatus(p);
                   const cfg = statusCfg[status];
                   const { Icon } = cfg;
+                  const monthEntry = p.monthlyPlans.find(
+                    (mp) => mp.month === selectedMonth && mp.year === CURRENT_YEAR
+                  );
                   return (
                     <div key={p.id} className="px-5 py-4 flex items-center gap-4 hover:bg-slate-50 transition-colors">
                       <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${cfg.bg} border ${cfg.border}`}>
@@ -328,6 +484,11 @@ export default function PlanningView() {
                           {' – '}
                           {p.endDate ? new Date(p.endDate).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                         </p>
+                        {monthEntry && (
+                          <p className="text-xs text-emerald-600 font-medium mt-0.5">
+                            {monthEntry.plannedHours} Std. geplant{monthEntry.notes ? ` · ${monthEntry.notes}` : ''}
+                          </p>
+                        )}
                       </div>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${cfg.bg} ${cfg.text} ${cfg.border}`}>
                         {cfg.label}

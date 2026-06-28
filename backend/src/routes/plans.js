@@ -27,4 +27,17 @@ router.put('/:id', [
 router.delete('/:id', c.remove);
 router.get('/monthly/:month', c.getMonthly);
 
+// MonthlyPlan CRUD scoped to a parent plan
+router.post('/:id/monthly', [
+    body('month').isInt({ min: 1, max: 12 }),
+    body('year').isInt({ min: 2000 }),
+    body('plannedHours').isFloat({ min: 0 }),
+    body('notes').optional().isString()
+], validate, c.createMonthly);
+router.put('/:id/monthly/:monthlyId', [
+    body('plannedHours').optional().isFloat({ min: 0 }),
+    body('notes').optional().isString()
+], validate, c.updateMonthly);
+router.delete('/:id/monthly/:monthlyId', c.removeMonthly);
+
 export default router;

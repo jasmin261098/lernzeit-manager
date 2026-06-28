@@ -10,6 +10,6 @@ export default (req, res, next) => {
         req.user = jwt.verify(token, process.env.JWT_SECRET);
         next();
     } catch {
-        res.status(401).json({ error: 'Ungülitiges Token' });
+        res.status(401).json({ error: 'Ungültiges Token' });
     }
 };

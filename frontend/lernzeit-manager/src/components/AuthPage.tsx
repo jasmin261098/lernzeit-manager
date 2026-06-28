@@ -1,17 +1,12 @@
 import { useState } from 'react';
-import { BookOpen, ArrowRight, Mail, Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { BookOpen, ArrowRight, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 
-interface AuthPageProps {
-  onLogin: () => void;
-}
-
-export default function AuthPage({ onLogin }: AuthPageProps) {
+export default function AuthPage() {
   const { signIn, signUp } = useAuth();
   const [view, setView] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,7 +21,6 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
       : await signUp(email, password);
 
     if (err) setError(err);
-    else onLogin();
     setLoading(false);
   };
 
@@ -59,19 +53,6 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {view === 'register' && (
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text" value={name} onChange={(e) => setName(e.target.value)}
-                    placeholder="Dein Name"
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                  />
-                </div>
-              </div>
-            )}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">E-Mail</label>
               <div className="relative">
