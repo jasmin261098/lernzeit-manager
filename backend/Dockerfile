@@ -1,12 +1,16 @@
-FROM node:18
+FROM node:22
 
 WORKDIR /app
 
 COPY package*.json ./
 RUN npm install
 
-COPY . .
+COPY prisma ./prisma
+COPY src ./src
+COPY prisma.config.ts ./
+
+COPY entrypoint.sh ./
 
 EXPOSE 3000
 
-CMD ["npm", "run", "dev"]
+ENTRYPOINT ["sh", "./entrypoint.sh"]

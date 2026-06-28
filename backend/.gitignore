@@ -7,3 +7,5 @@ dev.db-journal
 *.db-wal
 
 /src/generated/prisma
+
+/generated/prisma

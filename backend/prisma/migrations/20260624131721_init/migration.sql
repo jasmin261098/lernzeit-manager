@@ -1,9 +1,3 @@
-/*
-  Warnings:
-
-  - Added the required column `userId` to the `StudySession` table without a default value. This is not possible if the table is not empty.
-
-*/
 -- CreateTable
 CREATE TABLE "User" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -50,6 +44,19 @@ CREATE TABLE "MonthlyPlan" (
 );
 
 -- CreateTable
+CREATE TABLE "StudySession" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "userId" INTEGER NOT NULL,
+    "goalId" INTEGER,
+    "startTime" DATETIME NOT NULL,
+    "endTime" DATETIME,
+    "duration" INTEGER,
+    "topic" TEXT,
+    CONSTRAINT "StudySession_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "StudySession_goalId_fkey" FOREIGN KEY ("goalId") REFERENCES "LearningGoal" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- CreateTable
 CREATE TABLE "Reminder" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "userId" INTEGER NOT NULL,
@@ -59,26 +66,6 @@ CREATE TABLE "Reminder" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Reminder_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
-
--- RedefineTables
-PRAGMA defer_foreign_keys=ON;
-PRAGMA foreign_keys=OFF;
-CREATE TABLE "new_StudySession" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "userId" INTEGER NOT NULL,
-    "goalId" INTEGER,
-    "startTime" DATETIME NOT NULL,
-    "endTime" DATETIME,
-    "duration" INTEGER,
-    "topic" TEXT,
-    CONSTRAINT "StudySession_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "StudySession_userId_fkey" FOREIGN KEY ("userId") REFERENCES "LearningGoal" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
-);
-INSERT INTO "new_StudySession" ("duration", "endTime", "id", "startTime", "topic") SELECT "duration", "endTime", "id", "startTime", "topic" FROM "StudySession";
-DROP TABLE "StudySession";
-ALTER TABLE "new_StudySession" RENAME TO "StudySession";
-PRAGMA foreign_keys=ON;
-PRAGMA defer_foreign_keys=OFF;
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");

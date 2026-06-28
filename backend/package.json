@@ -4,20 +4,29 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon src/app.js"
+    "dev": "nodemon --exec tsx src/app.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "^6.6.0",
+    "@prisma/adapter-better-sqlite3": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "bcrypt": "^6.0.0",
+    "better-sqlite3": "^11.0.0",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
-    "express": "^4.22.2"
+    "express": "^4.22.2",
+    "express-validator": "^7.3.2",
+    "jsonwebtoken": "^9.0.3",
+    "node-cron": "^4.5.0"
   },
   "devDependencies": {
-    "@types/node": "^25.9.3",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.9.4",
     "nodemon": "^3.1.14",
-    "prisma": "^6.6.0"
-  }
+    "prisma": "^7.8.0",
+    "tsx": "^4.22.4"
+  },
+  "type": "module"
 }
