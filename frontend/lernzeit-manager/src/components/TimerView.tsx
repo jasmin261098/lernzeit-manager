@@ -38,6 +38,16 @@ export default function TimerView() {
     try {
       const data = await api.get<(StudySession & { goal?: { title: string } | null })[]>('/sessions');
       setSessions(data);
+
+      // Restore UI if there is an unfinished session from a previous visit
+      const openSession = data.find((s) => s.duration === null);
+      if (openSession) {
+        setActiveSessionId(openSession.id);
+        setTopic(openSession.topic ?? '');
+        const elapsed = Math.floor((Date.now() - new Date(openSession.startTime).getTime()) / 1000);
+        setSeconds(Math.max(0, elapsed));
+        setTimerRunning(true);
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
