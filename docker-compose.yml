@@ -10,6 +10,7 @@ services:
     volumes:
       - ./backend/src:/app/src
       - ./backend/prisma:/app/prisma
+      - ./backend/dev.db:/app/dev.db
 
   frontend:
     build: ./frontend

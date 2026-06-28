@@ -3,6 +3,11 @@ import { Play, Pause, Square, Clock, AlertCircle } from 'lucide-react';
 import { api } from '../lib/api';
 import { type StudySession } from '../lib/supabase';
 
+interface Goal {
+  id: number;
+  title: string;
+}
+
 function fmtSeconds(totalSeconds: number) {
   const h = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
   const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
@@ -22,6 +27,8 @@ export default function TimerView() {
   const [timerRunning, setTimerRunning] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [topic, setTopic] = useState('');
+  const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
   const [sessions, setSessions] = useState<(StudySession & { goal?: { title: string } | null })[]>([]);
   const [error, setError] = useState('');
@@ -41,6 +48,10 @@ export default function TimerView() {
   useEffect(() => { fetchSessions(); }, [fetchSessions]);
 
   useEffect(() => {
+    api.get<Goal[]>('/goals').then(setGoals).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null;
     if (timerRunning) interval = setInterval(() => setSeconds((p) => p + 1), 1000);
     return () => { if (interval) clearInterval(interval); };
@@ -58,7 +69,10 @@ export default function TimerView() {
     if (!topic.trim()) return;
     setError('');
     try {
-      const session = await api.post<{ id: number }>('/sessions/start', { topic: topic.trim() });
+      const session = await api.post<{ id: number }>('/sessions/start', {
+        topic: topic.trim(),
+        goalId: selectedGoalId ?? undefined,
+      });
       setActiveSessionId(session.id);
       setTimerRunning(true);
     } catch (e) {
@@ -121,6 +135,24 @@ export default function TimerView() {
                 disabled={timerRunning || activeSessionId !== null}
                 className="w-full max-w-[260px] mx-auto block px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
               />
+              {goals.length > 0 && (
+                <>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-widest">
+                    Lernziel (optional)
+                  </label>
+                  <select
+                    value={selectedGoalId ?? ''}
+                    onChange={(e) => setSelectedGoalId(e.target.value ? Number(e.target.value) : null)}
+                    disabled={timerRunning || activeSessionId !== null}
+                    className="w-full max-w-[260px] mx-auto block px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">— Kein Ziel —</option>
+                    {goals.map((g) => (
+                      <option key={g.id} value={g.id}>{g.title}</option>
+                    ))}
+                  </select>
+                </>
+              )}
             </div>
 
             <div className="text-5xl font-mono font-bold tracking-tight my-6 tabular-nums">
