@@ -1,75 +1,47 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Backend-aligned types. Field names match what the Express API returns.
 
 export type Goal = {
-  id: string;
+  id: number;
   title: string;
-  deadline: string | null;
-  progress: number;
-  status: string;
-  user_id: string;
-  created_at: string;
+  startDate: string;
+  endDate: string | null;
+  status: 'open' | 'in_progress' | 'done';
+  userId: number;
+  createdAt: string;
 };
 
 export type StudySession = {
-  id: string;
-  goal_id: string | null;
-  duration_seconds: number;
-  started_at: string;
-  user_id: string;
-  created_at: string;
+  id: number;
+  goalId: number | null;
+  topic: string | null;
+  duration: number | null; // minutes; null while session is in progress
+  startTime: string;
+  userId: number;
+  createdAt: string;
 };
 
-export type PlanningPhase = {
-  id: string;
-  name: string;
-  status: string;
-  sort_order: number;
-  user_id: string;
-  created_at: string;
-};
-
-export type LearningBlock = {
-  id: string;
+export type LearningPlan = {
+  id: number;
   title: string;
-  date: string;
-  start_time: string | null;
-  end_time: string | null;
-  module: string | null;
-  month_index: number;
-  user_id: string;
-  created_at: string;
+  startDate: string;
+  endDate: string;
+  userId: number;
+  createdAt: string;
 };
 
-export type Notification = {
-  id: string;
-  title: string;
+export type MonthlyPlan = {
+  id: number;
+  month: number;
+  year: number;
+  plannedHours: number;
+  userId: number;
+  createdAt: string;
+};
+
+export type Reminder = {
+  id: number;
   message: string;
-  type: string;
-  read: boolean;
-  user_id: string;
-  created_at: string;
-};
-
-export type Module = {
-  id: string;
-  name: string;
-  target_hours: number;
-  start_month: number;
-  end_month: number;
-  color: string;
-  user_id: string;
-  created_at: string;
-};
-
-export type NotificationSettings = {
-  id: string;
-  reminders_enabled: boolean;
-  inactivity_alerts_enabled: boolean;
-  user_id: string;
-  created_at: string;
+  scheduledAt: string;
+  userId: number;
+  createdAt: string;
 };

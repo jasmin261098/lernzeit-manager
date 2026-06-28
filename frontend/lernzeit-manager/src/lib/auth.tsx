@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { supabase } from './supabase';
+import { api, saveToken, clearToken, decodeToken } from './api';
 
 interface AuthContextType {
   user: { id: string; email: string } | null;
@@ -11,41 +11,49 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function loadUserFromStorage(): { id: string; email: string } | null {
+  const token = localStorage.getItem('auth_token');
+  const email = localStorage.getItem('auth_email');
+  if (!token || !email) return null;
+  const payload = decodeToken(token);
+  if (!payload) return null;
+  return { id: String(payload.userId), email };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser({ id: session.user.id, email: session.user.email! });
-      }
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser({ id: session.user.id, email: session.user.email! });
-      } else {
-        setUser(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    setUser(loadUserFromStorage());
+    setLoading(false);
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message };
+    try {
+      const { token } = await api.post<{ token: string }>('/auth/login', { email, password });
+      saveToken(token);
+      localStorage.setItem('auth_email', email);
+      const payload = decodeToken(token);
+      if (payload) setUser({ id: String(payload.userId), email });
+      return {};
+    } catch (err) {
+      return { error: (err as Error).message };
+    }
   };
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    return { error: error?.message };
+    try {
+      await api.post('/auth/register', { email, password });
+      return await signIn(email, password);
+    } catch (err) {
+      return { error: (err as Error).message };
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    clearToken();
+    localStorage.removeItem('auth_email');
     setUser(null);
   };
 

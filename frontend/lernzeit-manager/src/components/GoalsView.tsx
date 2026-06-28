@@ -1,95 +1,97 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Pencil, X, Save, Target, AlertCircle, BookOpen } from 'lucide-react';
-import { supabase, type Goal, type Module } from '../lib/supabase';
-import { useAuth } from '../lib/auth';
+import { Plus, Trash2, Pencil, X, Save, Target, AlertCircle } from 'lucide-react';
+import { api } from '../lib/api';
+import { type Goal } from '../lib/supabase';
 
 const statusOptions = [
-  { value: 'offen', label: 'Offen', bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' },
-  { value: 'in_bearbeitung', label: 'In Bearbeitung', bg: 'bg-sky-100', text: 'text-sky-700', border: 'border-sky-200' },
-  { value: 'abgeschlossen', label: 'Abgeschlossen', bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200' },
+  { value: 'open',        label: 'Offen',          bg: 'bg-amber-100',   text: 'text-amber-700',   border: 'border-amber-200' },
+  { value: 'in_progress', label: 'In Bearbeitung',  bg: 'bg-sky-100',     text: 'text-sky-700',     border: 'border-sky-200' },
+  { value: 'done',        label: 'Abgeschlossen',   bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200' },
 ];
 
-interface GoalsViewProps {
-  modules: Module[];
+const today = () => new Date().toISOString().slice(0, 10);
+
+function fmtDate(iso: string | null) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-export default function GoalsView({ modules }: GoalsViewProps) {
-  const { user } = useAuth();
+export default function GoalsView() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const [showAdd, setShowAdd] = useState(false);
   const [newTitle, setNewTitle] = useState('');
-  const [newDeadline, setNewDeadline] = useState('');
-  const [newModuleId, setNewModuleId] = useState('');
+  const [newEndDate, setNewEndDate] = useState('');
+  const [newTargetHours, setNewTargetHours] = useState('1');
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState('');
-  const [editDeadline, setEditDeadline] = useState('');
-  const [editModuleId, setEditModuleId] = useState('');
+  const [editEndDate, setEditEndDate] = useState('');
 
   const fetchGoals = useCallback(async () => {
-    if (!user) return;
-    const { data, error } = await supabase
-      .from('goals')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    if (error) setError(error.message);
-    setGoals(data || []);
-    setLoading(false);
-  }, [user]);
+    try {
+      const data = await api.get<Goal[]>('/goals');
+      setGoals(data);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  useEffect(() => {
-    fetchGoals();
-  }, [fetchGoals]);
+  useEffect(() => { fetchGoals(); }, [fetchGoals]);
 
   const addGoal = async () => {
-    if (!newTitle.trim() || !user) return;
-    const { error } = await supabase.from('goals').insert({
-      title: newTitle,
-      deadline: newDeadline || null,
-      module_id: newModuleId || null,
-      progress: 0,
-      status: 'offen',
-    });
-    if (error) setError(error.message);
-    setNewTitle('');
-    setNewDeadline('');
-    setNewModuleId('');
-    setShowAdd(false);
-    fetchGoals();
+    if (!newTitle.trim() || !newEndDate) return;
+    try {
+      await api.post('/goals', {
+        title: newTitle,
+        targetHours: parseFloat(newTargetHours) || 1,
+        startDate: today(),
+        endDate: newEndDate,
+      });
+      setNewTitle(''); setNewEndDate(''); setNewTargetHours('1'); setShowAdd(false);
+      fetchGoals();
+    } catch (e) {
+      setError((e as Error).message);
+    }
   };
 
-  const deleteGoal = async (id: string) => {
-    const { error } = await supabase.from('goals').delete().eq('id', id);
-    if (error) setError(error.message);
-    fetchGoals();
+  const deleteGoal = async (id: number) => {
+    try {
+      await api.delete(`/goals/${id}`);
+      fetchGoals();
+    } catch (e) {
+      setError((e as Error).message);
+    }
   };
 
-  const updateStatus = async (id: string, status: string) => {
-    const progress = status === 'abgeschlossen' ? 100 : status === 'in_bearbeitung' ? 50 : 0;
-    const { error } = await supabase.from('goals').update({ status, progress }).eq('id', id);
-    if (error) setError(error.message);
-    fetchGoals();
+  const updateStatus = async (id: number, status: string) => {
+    try {
+      await api.patch(`/goals/${id}/status`, { status });
+      fetchGoals();
+    } catch (e) {
+      setError((e as Error).message);
+    }
   };
 
   const startEdit = (g: Goal) => {
     setEditingId(g.id);
     setEditTitle(g.title);
-    setEditDeadline(g.deadline || '');
-    setEditModuleId((g as any).module_id || '');
+    setEditEndDate(g.endDate ? g.endDate.slice(0, 10) : '');
   };
 
   const saveEdit = async () => {
     if (!editingId) return;
-    const payload: any = { title: editTitle, deadline: editDeadline || null };
-    if (editModuleId) payload.module_id = editModuleId;
-    const { error } = await supabase.from('goals').update(payload).eq('id', editingId);
-    if (error) setError(error.message);
-    setEditingId(null);
-    fetchGoals();
+    try {
+      await api.put(`/goals/${editingId}`, { title: editTitle, endDate: editEndDate || undefined });
+      setEditingId(null);
+      fetchGoals();
+    } catch (e) {
+      setError((e as Error).message);
+    }
   };
 
   if (loading) {
@@ -137,25 +139,33 @@ export default function GoalsView({ modules }: GoalsViewProps) {
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Frist</label>
               <input
-                value={newDeadline} onChange={(e) => setNewDeadline(e.target.value)}
-                placeholder="z.B. In 3 Tagen"
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                type="date" value={newEndDate} onChange={(e) => setNewEndDate(e.target.value)} required
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Modul</label>
-              <select
-                value={newModuleId} onChange={(e) => setNewModuleId(e.target.value)}
+              <label className="block text-xs font-medium text-slate-600 mb-1">Zielstunden</label>
+              <input
+                type="number" min="0.5" step="0.5" value={newTargetHours}
+                onChange={(e) => setNewTargetHours(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
-              >
-                <option value="">Kein Modul</option>
-                {modules.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
+              />
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={addGoal} className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors">Speichern</button>
-            <button onClick={() => { setShowAdd(false); setNewTitle(''); setNewDeadline(''); setNewModuleId(''); }} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors">Abbrechen</button>
+            <button
+              onClick={addGoal}
+              disabled={!newTitle.trim() || !newEndDate}
+              className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Speichern
+            </button>
+            <button
+              onClick={() => { setShowAdd(false); setNewTitle(''); setNewEndDate(''); setNewTargetHours('1'); }}
+              className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              Abbrechen
+            </button>
           </div>
         </div>
       )}
@@ -165,7 +175,6 @@ export default function GoalsView({ modules }: GoalsViewProps) {
           {goals.map((g) => {
             const st = statusOptions.find((s) => s.value === g.status) || statusOptions[0];
             const isEditing = editingId === g.id;
-            const linkedModule = modules.find((m) => m.id === (g as any).module_id);
 
             return (
               <div key={g.id} className="px-5 py-4 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
@@ -177,29 +186,16 @@ export default function GoalsView({ modules }: GoalsViewProps) {
                         className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
                       />
                       <input
-                        value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)}
-                        placeholder="Frist"
-                        className="w-32 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        type="date" value={editEndDate} onChange={(e) => setEditEndDate(e.target.value)}
+                        className="w-40 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
                       />
-                      <select
-                        value={editModuleId} onChange={(e) => setEditModuleId(e.target.value)}
-                        className="w-36 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                      >
-                        <option value="">Kein Modul</option>
-                        {modules.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                      </select>
                       <button onClick={saveEdit} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"><Save className="w-4 h-4" /></button>
                       <button onClick={() => setEditingId(null)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"><X className="w-4 h-4" /></button>
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center gap-2">
-                        <p className={`text-sm font-semibold truncate ${g.status === 'abgeschlossen' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{g.title}</p>
-                        {linkedModule && (
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">{linkedModule.name}</span>
-                        )}
-                      </div>
-                      {g.deadline && <p className="text-xs text-slate-500 mt-0.5">{g.deadline}</p>}
+                      <p className={`text-sm font-semibold truncate ${g.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{g.title}</p>
+                      {g.endDate && <p className="text-xs text-slate-500 mt-0.5">Frist: {fmtDate(g.endDate)}</p>}
                     </>
                   )}
                 </div>

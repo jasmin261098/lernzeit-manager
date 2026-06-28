@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { BookOpen, ArrowRight, Mail, Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth';
 
 interface AuthPageProps {
   onLogin: () => void;
 }
 
 export default function AuthPage({ onLogin }: AuthPageProps) {
+  const { signIn, signUp } = useAuth();
   const [view, setView] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,15 +21,12 @@ export default function AuthPage({ onLogin }: AuthPageProps) {
     setError('');
     setLoading(true);
 
-    if (view === 'login') {
-      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-      if (err) setError(err.message);
-      else onLogin();
-    } else {
-      const { error: err } = await supabase.auth.signUp({ email, password });
-      if (err) setError(err.message);
-      else onLogin();
-    }
+    const { error: err } = view === 'login'
+      ? await signIn(email, password)
+      : await signUp(email, password);
+
+    if (err) setError(err);
+    else onLogin();
     setLoading(false);
   };
 

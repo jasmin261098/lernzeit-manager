@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Clock,
   Target,
@@ -7,11 +7,9 @@ import {
   Play,
   Pause,
   RotateCcw,
-  CheckCircle2,
   Edit3,
   Trash2,
   Plus,
-  BookOpen,
   AlertCircle,
   X,
   Save,
@@ -20,7 +18,8 @@ import {
   Award,
   Timer,
 } from 'lucide-react';
-import { supabase, type Goal, type StudySession } from '../lib/supabase';
+import { api } from '../lib/api';
+import { type Goal, type StudySession } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
 function formatTime(totalSeconds: number) {
@@ -30,161 +29,161 @@ function formatTime(totalSeconds: number) {
   return `${hrs}:${mins}:${secs}`;
 }
 
-function formatDuration(seconds: number) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
+function formatDuration(minutes: number) {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
   if (h > 0) return `${h}h ${m}m`;
   return `${m}m`;
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  open: 'Offen',
+  in_progress: 'In Bearbeitung',
+  done: 'Abgeschlossen',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  open: 'bg-amber-100 text-amber-700 border-amber-200',
+  in_progress: 'bg-sky-100 text-sky-700 border-sky-200',
+  done: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+};
+
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const [timerRunning, setTimerRunning] = useState(false);
   const [seconds, setSeconds] = useState(0);
-  const [timerStart, setTimerStart] = useState<Date | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [formTitle, setFormTitle] = useState('');
-  const [formDeadline, setFormDeadline] = useState('');
-  const [formStatus, setFormStatus] = useState('Aktiv');
+  const [formEndDate, setFormEndDate] = useState('');
+  const [formTargetHours, setFormTargetHours] = useState('1');
+  const [formStatus, setFormStatus] = useState<'open' | 'in_progress' | 'done'>('open');
+
+  const today = () => new Date().toISOString().slice(0, 10);
 
   const fetchData = useCallback(async () => {
-    const [{ data: goalsData }, { data: sessionsData }] = await Promise.all([
-      supabase.from('goals').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }),
-      supabase.from('study_sessions').select('*').eq('user_id', user!.id).order('started_at', { ascending: false }),
-    ]);
-    setGoals(goalsData || []);
-    setSessions(sessionsData || []);
-    setLoading(false);
-  }, [user]);
+    try {
+      const [goalsData, sessionsData] = await Promise.all([
+        api.get<Goal[]>('/goals'),
+        api.get<StudySession[]>('/sessions'),
+      ]);
+      setGoals(goalsData);
+      setSessions(sessionsData);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null;
     if (timerRunning) {
-      interval = setInterval(() => {
-        setSeconds((prev) => prev + 1);
-      }, 1000);
+      interval = setInterval(() => setSeconds((prev) => prev + 1), 1000);
     }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => { if (interval) clearInterval(interval); };
   }, [timerRunning]);
 
-  const handleStart = () => {
-    setTimerRunning(true);
-    setTimerStart(new Date());
+  const handleStart = async () => {
+    try {
+      const session = await api.post<{ id: number }>('/sessions/start', {});
+      setActiveSessionId(session.id);
+      setTimerRunning(true);
+    } catch (e) {
+      setError((e as Error).message);
+    }
   };
 
   const handlePause = async () => {
     setTimerRunning(false);
-    if (timerStart && seconds > 0) {
-      await supabase.from('study_sessions').insert({
-        duration_seconds: seconds,
-        started_at: timerStart.toISOString(),
-      });
-      setTimerStart(null);
-      setSeconds(0);
-      fetchData();
+    if (activeSessionId) {
+      try {
+        await api.patch(`/sessions/${activeSessionId}/stop`);
+        setActiveSessionId(null);
+        setSeconds(0);
+        fetchData();
+      } catch (e) {
+        setError((e as Error).message);
+      }
     }
   };
 
   const handleReset = () => {
     setTimerRunning(false);
     setSeconds(0);
-    setTimerStart(null);
+    setActiveSessionId(null);
   };
 
   const handleAddGoal = async () => {
-    if (!formTitle.trim()) return;
-    await supabase.from('goals').insert({
-      title: formTitle,
-      deadline: formDeadline || null,
-      status: formStatus,
-      progress: 0,
-    });
-    setFormTitle('');
-    setFormDeadline('');
-    setFormStatus('Aktiv');
-    setShowAddModal(false);
-    fetchData();
+    if (!formTitle.trim() || !formEndDate) return;
+    try {
+      await api.post('/goals', {
+        title: formTitle,
+        targetHours: parseFloat(formTargetHours) || 1,
+        startDate: today(),
+        endDate: formEndDate,
+      });
+      closeModal();
+      fetchData();
+    } catch (e) {
+      setError((e as Error).message);
+    }
   };
 
   const handleUpdateGoal = async () => {
     if (!editingGoal || !formTitle.trim()) return;
-    await supabase
-      .from('goals')
-      .update({ title: formTitle, deadline: formDeadline || null, status: formStatus })
-      .eq('id', editingGoal.id);
-    setEditingGoal(null);
-    setFormTitle('');
-    setFormDeadline('');
-    setFormStatus('Aktiv');
-    fetchData();
+    try {
+      await api.put(`/goals/${editingGoal.id}`, {
+        title: formTitle,
+        endDate: formEndDate || undefined,
+        status: formStatus,
+      });
+      closeModal();
+      fetchData();
+    } catch (e) {
+      setError((e as Error).message);
+    }
   };
 
-  const handleDeleteGoal = async (id: string) => {
-    await supabase.from('goals').delete().eq('id', id);
-    fetchData();
-  };
-
-  const handleProgressChange = async (goal: Goal, newProgress: number) => {
-    await supabase.from('goals').update({ progress: newProgress }).eq('id', goal.id);
-    fetchData();
+  const handleDeleteGoal = async (id: number) => {
+    try {
+      await api.delete(`/goals/${id}`);
+      fetchData();
+    } catch (e) {
+      setError((e as Error).message);
+    }
   };
 
   const openEdit = (goal: Goal) => {
     setEditingGoal(goal);
     setFormTitle(goal.title);
-    setFormDeadline(goal.deadline || '');
+    setFormEndDate(goal.endDate ? goal.endDate.slice(0, 10) : '');
+    setFormTargetHours('1');
     setFormStatus(goal.status);
   };
 
   const openAdd = () => {
     setShowAddModal(true);
-    setFormTitle('');
-    setFormDeadline('');
-    setFormStatus('Aktiv');
+    setFormTitle(''); setFormEndDate(''); setFormTargetHours('1'); setFormStatus('open');
   };
 
   const closeModal = () => {
     setShowAddModal(false);
     setEditingGoal(null);
-    setFormTitle('');
-    setFormDeadline('');
-    setFormStatus('Aktiv');
+    setFormTitle(''); setFormEndDate(''); setFormTargetHours('1'); setFormStatus('open');
   };
 
-  const totalStudySeconds = sessions.reduce((sum, s) => sum + s.duration_seconds, 0);
-  const completedGoals = goals.filter((g) => g.progress >= 100).length;
-  const urgentGoals = goals.filter((g) => g.status === 'Dringend').length;
-
-  const statusColor = (status: string) => {
-    switch (status) {
-      case 'Dringend':
-        return 'bg-rose-100 text-rose-700 border-rose-200';
-      case 'Abgeschlossen':
-        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      default:
-        return 'bg-sky-100 text-sky-700 border-sky-200';
-    }
-  };
-
-  const progressColor = (progress: number) => {
-    if (progress >= 100) return 'bg-emerald-500';
-    if (progress >= 75) return 'bg-sky-500';
-    if (progress >= 50) return 'bg-amber-500';
-    if (progress >= 25) return 'bg-orange-500';
-    return 'bg-rose-500';
-  };
+  const totalMinutes = sessions.reduce((sum, s) => sum + (s.duration ?? 0), 0);
+  const completedGoals = goals.filter((g) => g.status === 'done').length;
 
   if (loading) {
     return (
@@ -199,7 +198,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Dashboard</h2>
@@ -208,14 +206,24 @@ export default function Dashboard() {
         <div className="flex items-center gap-3">
           <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-700 text-sm font-medium rounded-full">
             <Award className="w-3.5 h-3.5" />
-            Studi_2026
+            {user?.email}
           </span>
-          <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+          <button
+            onClick={signOut}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+          >
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">Ausloggen</span>
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 rounded-lg">
+          <AlertCircle className="w-4 h-4 text-rose-500 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-rose-700">{error}</p>
+        </div>
+      )}
 
       <div className="space-y-6">
         {/* Stats Row */}
@@ -224,8 +232,10 @@ export default function Dashboard() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Gesamte Lernzeit</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">{formatDuration(totalStudySeconds)}</p>
-                <p className="text-xs text-emerald-600 mt-1 font-medium">+{formatDuration(sessions.length > 0 ? sessions[0].duration_seconds : 0)} letzte Session</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">{formatDuration(totalMinutes)}</p>
+                <p className="text-xs text-emerald-600 mt-1 font-medium">
+                  {sessions.length > 0 ? `+${formatDuration(sessions[0].duration ?? 0)} letzte Session` : 'Noch keine Sessions'}
+                </p>
               </div>
               <div className="w-10 h-10 bg-sky-50 rounded-lg flex items-center justify-center">
                 <Clock className="w-5 h-5 text-sky-600" />
@@ -254,9 +264,9 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Dringende Ziele</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">{urgentGoals}</p>
-                <p className="text-xs text-rose-500 mt-1 font-medium">{urgentGoals > 0 ? 'Aktion erforderlich' : 'Alles im Plan'}</p>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Offene Ziele</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">{goals.filter((g) => g.status === 'open').length}</p>
+                <p className="text-xs text-slate-500 mt-1 font-medium">{goals.filter((g) => g.status === 'in_progress').length} in Bearbeitung</p>
               </div>
               <div className="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center">
                 <AlertCircle className="w-5 h-5 text-rose-600" />
@@ -299,16 +309,18 @@ export default function Dashboard() {
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1.5">
-                            <h3 className="text-sm font-semibold text-slate-900 truncate">{goal.title}</h3>
-                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${statusColor(goal.status)}`}>
-                              {goal.status}
+                            <h3 className={`text-sm font-semibold truncate ${goal.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{goal.title}</h3>
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[goal.status] ?? STATUS_COLORS.open}`}>
+                              {STATUS_LABELS[goal.status] ?? goal.status}
                             </span>
                           </div>
                           <div className="flex items-center gap-3 text-xs text-slate-500">
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {goal.deadline || 'Keine Frist'}
-                            </span>
+                            {goal.endDate && (
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(goal.endDate).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -327,26 +339,6 @@ export default function Dashboard() {
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                      </div>
-
-                      <div className="mt-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
-                            <div
-                              className={`h-2 rounded-full transition-all ${progressColor(goal.progress)}`}
-                              style={{ width: `${goal.progress}%` }}
-                            />
-                          </div>
-                          <span className="text-xs font-semibold text-slate-600 w-9 text-right">{goal.progress}%</span>
-                        </div>
-                        <input
-                          type="range"
-                          min={0}
-                          max={100}
-                          value={goal.progress}
-                          onChange={(e) => handleProgressChange(goal, parseInt(e.target.value))}
-                          className="w-full mt-1 h-1 opacity-0 hover:opacity-100 transition-opacity cursor-pointer accent-slate-900"
-                        />
                       </div>
                     </div>
                   ))
@@ -369,13 +361,10 @@ export default function Dashboard() {
                           <Clock className="w-4 h-4 text-sky-600" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-slate-900">{formatDuration(session.duration_seconds)}</p>
+                          <p className="text-sm font-medium text-slate-900">{formatDuration(session.duration ?? 0)}</p>
                           <p className="text-xs text-slate-500">
-                            {new Date(session.started_at).toLocaleDateString('de-DE', {
-                              day: '2-digit',
-                              month: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit',
+                            {new Date(session.startTime).toLocaleDateString('de-DE', {
+                              day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
                             })}
                           </p>
                         </div>
@@ -424,7 +413,7 @@ export default function Dashboard() {
                   )}
                   <button
                     onClick={handleReset}
-                    disabled={seconds === 0}
+                    disabled={seconds === 0 && !timerRunning}
                     className="inline-flex items-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <RotateCcw className="w-4 h-4" />
@@ -447,10 +436,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Add / Edit Modal */}
       {(showAddModal || editingGoal) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-900">
                 {editingGoal ? 'Ziel bearbeiten' : 'Neues Lernziel'}
@@ -463,46 +452,50 @@ export default function Dashboard() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Titel</label>
                 <input
-                  type="text"
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
+                  type="text" value={formTitle} onChange={(e) => setFormTitle(e.target.value)}
                   placeholder="z.B. Statistik - Hausarbeit"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Frist</label>
                 <input
-                  type="text"
-                  value={formDeadline}
-                  onChange={(e) => setFormDeadline(e.target.value)}
-                  placeholder="z.B. In 2 Wochen"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                  type="date" value={formEndDate} onChange={(e) => setFormEndDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                <select
-                  value={formStatus}
-                  onChange={(e) => setFormStatus(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
-                >
-                  <option value="Aktiv">Aktiv</option>
-                  <option value="Dringend">Dringend</option>
-                  <option value="Abgeschlossen">Abgeschlossen</option>
-                </select>
-              </div>
+              {!editingGoal && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Zielstunden</label>
+                  <input
+                    type="number" min="0.5" step="0.5" value={formTargetHours}
+                    onChange={(e) => setFormTargetHours(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+                </div>
+              )}
+              {editingGoal && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                  <select
+                    value={formStatus}
+                    onChange={(e) => setFormStatus(e.target.value as Goal['status'])}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  >
+                    <option value="open">Offen</option>
+                    <option value="in_progress">In Bearbeitung</option>
+                    <option value="done">Abgeschlossen</option>
+                  </select>
+                </div>
+              )}
             </div>
             <div className="px-5 py-4 border-t border-slate-100 flex items-center justify-end gap-2">
-              <button
-                onClick={closeModal}
-                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
-              >
+              <button onClick={closeModal} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors">
                 Abbrechen
               </button>
               <button
                 onClick={editingGoal ? handleUpdateGoal : handleAddGoal}
-                disabled={!formTitle.trim()}
+                disabled={!formTitle.trim() || (!editingGoal && !formEndDate)}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Save className="w-4 h-4" />
