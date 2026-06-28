@@ -43,13 +43,18 @@ res.json(updated);
 };
 
 export const remove = async (req, res) => {
-const plan = await prisma.learningPlan.findFirst({
-    where: { id: Number(req.params.id), userId: req.user.userId }
-});
-if (!plan) return res.status(404).json({ error: 'Nicht gefunden' });
+try {
+    const plan = await prisma.learningPlan.findFirst({
+        where: { id: Number(req.params.id), userId: req.user.userId }
+    });
+    if (!plan) return res.status(404).json({ error: 'Nicht gefunden' });
 
-await prisma.learningPlan.delete({ where: { id: Number(req.params.id) } });
-res.status(204).send();
+    await prisma.learningPlan.delete({ where: { id: Number(req.params.id) } });
+    res.status(204).send();
+} catch (e) {
+    console.error('Fehler beim Löschen des Plans:', e);
+    res.status(500).json({ error: 'Plan konnte nicht gelöscht werden' });
+}
 };
 
 export const getMonthly = async (req, res) => {
@@ -106,14 +111,19 @@ res.json(updated);
 };
 
 export const removeMonthly = async (req, res) => {
-const entry = await prisma.monthlyPlan.findFirst({
-    where: {
-    id: Number(req.params.monthlyId),
-    learningPlan: { userId: req.user.userId }
-    }
-});
-if (!entry) return res.status(404).json({ error: 'Nicht gefunden' });
+try {
+    const entry = await prisma.monthlyPlan.findFirst({
+        where: {
+        id: Number(req.params.monthlyId),
+        learningPlan: { userId: req.user.userId }
+        }
+    });
+    if (!entry) return res.status(404).json({ error: 'Nicht gefunden' });
 
-await prisma.monthlyPlan.delete({ where: { id: Number(req.params.monthlyId) } });
-res.status(204).send();
+    await prisma.monthlyPlan.delete({ where: { id: Number(req.params.monthlyId) } });
+    res.status(204).send();
+} catch (e) {
+    console.error('Fehler beim Löschen des Monatsplans:', e);
+    res.status(500).json({ error: 'Monatseintrag konnte nicht gelöscht werden' });
+}
 };
