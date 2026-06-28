@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Pencil, X, Save, Target, AlertCircle } from 'lucide-react';
 import { api } from '../lib/api';
-import { type Goal } from '../lib/supabase';
+import { type Goal } from '../lib/database';
 
 const statusOptions = [
   { value: 'open',        label: 'Offen',          bg: 'bg-amber-100',   text: 'text-amber-700',   border: 'border-amber-200' },

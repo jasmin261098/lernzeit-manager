@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Play, Pause, Square, Clock, AlertCircle } from 'lucide-react';
 import { api } from '../lib/api';
-import { type StudySession } from '../lib/supabase';
+import { type StudySession } from '../lib/database';
 
 interface Goal {
   id: number;

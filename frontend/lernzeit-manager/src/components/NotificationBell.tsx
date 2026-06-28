@@ -4,7 +4,7 @@ import {
   Settings, X, ToggleLeft, ToggleRight, Plus, Save,
 } from 'lucide-react';
 import { api } from '../lib/api';
-import { type Reminder, type StudySession } from '../lib/supabase';
+import { type Reminder, type StudySession } from '../lib/database';
 
 const SETTINGS_KEY = 'notification_settings';
 

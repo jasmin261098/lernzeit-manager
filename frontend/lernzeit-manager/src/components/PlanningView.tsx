@@ -4,7 +4,7 @@ import {
   ChevronRight, CheckCircle2, Circle, AlertCircle,
 } from 'lucide-react';
 import { api } from '../lib/api';
-import { type LearningPlan, type MonthlyPlan } from '../lib/supabase';
+import { type LearningPlan, type MonthlyPlan } from '../lib/database';
 
 type PlanWithMonthly = LearningPlan & { monthlyPlans: MonthlyPlan[] };
 
