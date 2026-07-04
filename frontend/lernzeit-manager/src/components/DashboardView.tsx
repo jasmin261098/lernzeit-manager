@@ -1,4 +1,4 @@
-import { Clock, TrendingUp, AlertTriangle, BookOpen, Target, CalendarDays, Timer } from 'lucide-react';
+import { Clock, TrendingUp, Trophy, BookOpen, Target, CalendarDays, Timer } from 'lucide-react';
 import { type Module } from '../lib/supabase';
 
 interface DashboardViewProps {
@@ -57,7 +57,7 @@ export default function DashboardView({ modules }: DashboardViewProps) {
               <p className="text-2xl font-bold text-slate-900 mt-1">0 Tage</p>
               <p className="text-xs text-slate-500 mt-1 font-medium">Status: Höchste Aktivität</p>
             </div>
-            <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-amber-600" /></div>
+            <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center"><Trophy className="w-5 h-5 text-emerald-600" /></div>
           </div>
         </div>
       </div>

@@ -21,7 +21,8 @@ export default function Sidebar({ currentView, onChangeView, onLogout }: Sidebar
   const displayName = user?.email?.split('@')[0] || 'Studi_2026';
 
   return (
-    <aside className="w-64 bg-slate-900 text-white flex flex-col h-screen sticky top-0 shrink-0">
+    /* w-80 sorgt für eine stabile, breitere Sidebar (320px) */
+    <aside className="w-80 bg-slate-900 text-white flex flex-col h-screen sticky top-0 shrink-0">
       <div className="p-5 border-b border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
@@ -60,7 +61,6 @@ export default function Sidebar({ currentView, onChangeView, onLogout }: Sidebar
           </div>
           <div className="text-left min-w-0">
             <p className="text-sm font-medium text-white truncate">{displayName}</p>
-            <p className="text-xs text-slate-500">Student</p>
           </div>
         </div>
         <button

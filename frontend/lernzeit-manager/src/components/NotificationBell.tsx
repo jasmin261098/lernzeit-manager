@@ -38,7 +38,6 @@ export default function NotificationBell() {
     if (data) {
       setSettings(data);
     } else {
-      // Create default settings
       const { data: created } = await supabase.from('notification_settings').insert({}).select().single();
       if (created) setSettings(created);
     }
@@ -98,7 +97,6 @@ export default function NotificationBell() {
     const { error } = await supabase.from('notification_settings').update({ [key]: value }).eq('id', settings.id);
     if (!error) {
       setSettings({ ...settings, [key]: value });
-      // Re-seed or clear demo notifications based on toggles
       await syncDemoNotifications({ ...settings, [key]: value });
       fetchNotifications();
     }
@@ -106,7 +104,6 @@ export default function NotificationBell() {
 
   const syncDemoNotifications = async (currentSettings: NotificationSettings) => {
     if (!user) return;
-    // Delete existing demo notifications first
     await supabase.from('notifications').delete().eq('user_id', user.id).in('type', ['reminder', 'warning']);
 
     const inserts: any[] = [];
@@ -150,6 +147,7 @@ export default function NotificationBell() {
   };
 
   const filteredNotifications = notifications.filter((n) => {
+    if (n.read) return false;
     if (n.type === 'reminder' && !settings?.reminders_enabled) return false;
     if (n.type === 'warning' && !settings?.inactivity_alerts_enabled) return false;
     return true;
@@ -170,7 +168,8 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-12 w-80 bg-white rounded-xl border border-slate-200 shadow-xl z-50 overflow-hidden">
+        /* left-0 klappt das Fenster jetzt nach rechts über das Dashboard auf, w-80 gibt massig Platz */
+        <div className="absolute left-0 top-12 w-80 bg-white rounded-xl border border-slate-200 shadow-2xl z-50 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
             <h4 className="text-sm font-bold text-slate-900">
@@ -239,7 +238,7 @@ export default function NotificationBell() {
             /* Notifications list */
             <div className="max-h-80 overflow-y-auto">
               {filteredNotifications.length === 0 ? (
-                <div className="px-4 py-8 text-center text-sm text-slate-400">Keine Benachrichtigungen</div>
+                <div className="px-4 py-8 text-center text-sm text-slate-400">Keine neuen Mitteilungen</div>
               ) : (
                 filteredNotifications.map((n) => {
                   const Icon = typeIcons[n.type] || BookOpen;
