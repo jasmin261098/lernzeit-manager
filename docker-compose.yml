@@ -5,12 +5,14 @@ services:
     build: ./backend
     ports:
       - "3000:3000"
-    env_file:
-      - ./backend/.env
+    environment:
+      DATABASE_URL: "file:/app/data/dev.db"
+      PORT: "3000"
+      JWT_SECRET: "${JWT_SECRET:-change-this-to-a-random-secret-before-deploying}"
     volumes:
       - ./backend/src:/app/src
       - ./backend/prisma:/app/prisma
-      - ./backend/dev.db:/app/dev.db
+      - backend_db:/app/data
 
   frontend:
     build: ./frontend
@@ -20,3 +22,6 @@ services:
       - ./frontend/lernzeit-manager:/app
     working_dir: /app
     command: sh -c "npm install && npm run dev"
+
+volumes:
+  backend_db:
