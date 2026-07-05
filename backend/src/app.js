@@ -11,7 +11,7 @@ import reminderRoutes from './routes/reminders.js';
 import dashboardRoutes from './routes/dashboard.js';
 
 const app = express();
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors({ origin: ['http://localhost:5173', 'http://frontend:5173'] }));
 app.use(express.json());
 
 app.use('/auth', authRoutes);
