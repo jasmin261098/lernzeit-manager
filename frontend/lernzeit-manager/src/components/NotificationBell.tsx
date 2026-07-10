@@ -3,7 +3,8 @@ import {
   Bell, BellRing, Check, Trash2, AlertTriangle, Clock, BookOpen,
   Settings, X, ToggleLeft, ToggleRight,
 } from 'lucide-react';
-import { supabase, type Notification, type NotificationSettings } from '../lib/supabase';
+import { api } from '../lib/api';
+import { type Notification, type NotificationSettings } from '../lib/types';
 import { useAuth } from '../lib/auth';
 
 const typeIcons: Record<string, typeof AlertTriangle> = {
@@ -28,18 +29,26 @@ export default function NotificationBell() {
 
   const fetchNotifications = async () => {
     if (!user) return;
-    const { data } = await supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
-    setNotifications(data || []);
+    try {
+      const data = await api.get<Notification[]>('/notifications');
+      setNotifications(data || []);
+    } catch {
+      setNotifications([]);
+    }
   };
 
   const fetchSettings = async () => {
     if (!user) return;
-    const { data } = await supabase.from('notification_settings').select('*').eq('user_id', user.id).maybeSingle();
-    if (data) {
-      setSettings(data);
-    } else {
-      const { data: created } = await supabase.from('notification_settings').insert({}).select().single();
-      if (created) setSettings(created);
+    try {
+      const data = await api.get<NotificationSettings | null>('/notification-settings');
+      if (data) {
+        setSettings(data);
+      } else {
+        const created = await api.post<NotificationSettings>('/notification-settings', {});
+        if (created) setSettings(created);
+      }
+    } catch {
+      setSettings(null);
     }
   };
 
@@ -66,84 +75,108 @@ export default function NotificationBell() {
 
   const seedDemoNotifications = async () => {
     if (!user) return;
-    const { data: existing } = await supabase.from('notifications').select('*').eq('user_id', user.id);
-    if (!existing || existing.length === 0) {
-      await supabase.from('notifications').insert([
-        {
-          title: 'Lernblock-Erinnerung',
-          message: "Dein Lernblock 'Statistik' beginnt in 15 Minuten!",
-          type: 'reminder',
-          read: false,
-        },
-        {
-          title: 'Inaktivitäts-Warnung',
-          message: 'Du hast diese Woche dein Lernziel noch nicht gestartet.',
-          type: 'warning',
-          read: false,
-        },
-        {
-          title: 'Wochenziel erreicht',
-          message: 'Herzlichen Glückwunsch! Du hast deine wöchentliche Lernzeit erreicht.',
-          type: 'info',
-          read: true,
-        },
-      ]);
-      fetchNotifications();
+    try {
+      const existing = await api.get<Notification[]>('/notifications');
+      if (!existing || existing.length === 0) {
+        await api.post<Notification[]>('/notifications', [
+          {
+            title: 'Lernblock-Erinnerung',
+            message: "Dein Lernblock 'Statistik' beginnt in 15 Minuten!",
+            type: 'reminder',
+            read: false,
+          },
+          {
+            title: 'Inaktivitäts-Warnung',
+            message: 'Du hast diese Woche dein Lernziel noch nicht gestartet.',
+            type: 'warning',
+            read: false,
+          },
+          {
+            title: 'Wochenziel erreicht',
+            message: 'Herzlichen Glückwunsch! Du hast deine wöchentliche Lernzeit erreicht.',
+            type: 'info',
+            read: true,
+          },
+        ]);
+        fetchNotifications();
+      }
+    } catch {
+      // ignore seed failures when API is not yet available
     }
   };
 
   const updateSetting = async (key: keyof NotificationSettings, value: boolean) => {
     if (!settings || !user) return;
-    const { error } = await supabase.from('notification_settings').update({ [key]: value }).eq('id', settings.id);
-    if (!error) {
-      setSettings({ ...settings, [key]: value });
-      await syncDemoNotifications({ ...settings, [key]: value });
-      fetchNotifications();
+    try {
+      const updated = await api.patch<NotificationSettings>(`/notification-settings/${settings.id}`, { [key]: value });
+      if (updated) {
+        setSettings(updated);
+        await syncDemoNotifications(updated);
+        fetchNotifications();
+      }
+    } catch {
+      // ignore setting update errors
     }
   };
 
   const syncDemoNotifications = async (currentSettings: NotificationSettings) => {
     if (!user) return;
-    await supabase.from('notifications').delete().eq('user_id', user.id).in('type', ['reminder', 'warning']);
+    try {
+      await api.delete('/notifications?types=reminder,warning');
 
-    const inserts: any[] = [];
-    if (currentSettings.reminders_enabled) {
-      inserts.push({
-        title: 'Lernblock-Erinnerung',
-        message: "Dein Lernblock 'Statistik' beginnt in 15 Minuten!",
-        type: 'reminder',
-        read: false,
-      });
-    }
-    if (currentSettings.inactivity_alerts_enabled) {
-      inserts.push({
-        title: 'Inaktivitäts-Warnung',
-        message: 'Du hast diese Woche dein Lernziel noch nicht gestartet.',
-        type: 'warning',
-        read: false,
-      });
-    }
-    if (inserts.length > 0) {
-      await supabase.from('notifications').insert(inserts);
+      const inserts: Array<Omit<Notification, 'id'>> = [];
+      if (currentSettings.reminders_enabled) {
+        inserts.push({
+          title: 'Lernblock-Erinnerung',
+          message: "Dein Lernblock 'Statistik' beginnt in 15 Minuten!",
+          type: 'reminder',
+          read: false,
+        });
+      }
+      if (currentSettings.inactivity_alerts_enabled) {
+        inserts.push({
+          title: 'Inaktivitäts-Warnung',
+          message: 'Du hast diese Woche dein Lernziel noch nicht gestartet.',
+          type: 'warning',
+          read: false,
+        });
+      }
+      if (inserts.length > 0) {
+        await api.post<Notification[]>('/notifications', inserts);
+      }
+    } catch {
+      // ignore sync failures
     }
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const markRead = async (id: string) => {
-    await supabase.from('notifications').update({ read: true }).eq('id', id);
-    fetchNotifications();
+  const markRead = async (id: number) => {
+    try {
+      await api.patch(`/notifications/${id}`, { read: true });
+      fetchNotifications();
+    } catch {
+      // ignore mark-read failures
+    }
   };
 
   const markAllRead = async () => {
     if (!user) return;
-    await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false);
-    fetchNotifications();
+    try {
+      await api.patch('/notifications/mark-all-read', {});
+      fetchNotifications();
+    } catch {
+      // ignore mark-all-read failures
+    }
   };
 
-  const deleteNotification = async (id: string) => {
-    await supabase.from('notifications').delete().eq('id', id);
-    fetchNotifications();
+  const deleteNotification = async (id: number) => {
+    try {
+      await api.delete(`/notifications/${id}`);
+      fetchNotifications();
+    } catch {
+      // ignore delete failures
+    }
   };
 
   const filteredNotifications = notifications.filter((n) => {

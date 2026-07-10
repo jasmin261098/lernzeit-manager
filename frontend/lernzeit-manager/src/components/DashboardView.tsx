@@ -1,11 +1,11 @@
-import { Clock, TrendingUp, Trophy, BookOpen, Target, CalendarDays, Timer } from 'lucide-react';
-import { type Module } from '../lib/supabase';
+import { Clock, TrendingUp, Trophy, BookOpen } from 'lucide-react';
+import { type Module } from '../lib/types';
 
 interface DashboardViewProps {
-  modules: Module[];
+  modules?: Module[];
 }
 
-export default function DashboardView({ modules }: DashboardViewProps) {
+export default function DashboardView({ modules = [] }: DashboardViewProps) {
   return (
     <div className="space-y-6">
       <div>
