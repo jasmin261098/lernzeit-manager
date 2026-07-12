@@ -164,7 +164,7 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-12 w-80 bg-white rounded-xl border border-slate-200 shadow-xl z-50 overflow-hidden">
+        <div className="absolute left-0 top-12 w-80 bg-white rounded-xl border border-slate-200 shadow-xl z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
             <h4 className="text-sm font-bold text-slate-900">
               {showSettings ? 'Einstellungen' : showCreate ? 'Neue Erinnerung' : 'Erinnerungen'}

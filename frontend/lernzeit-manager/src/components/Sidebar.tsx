@@ -60,7 +60,6 @@ export default function Sidebar({ currentView, onChangeView, onLogout }: Sidebar
           </div>
           <div className="text-left min-w-0">
             <p className="text-sm font-medium text-white truncate">{displayName}</p>
-            <p className="text-xs text-slate-500">Student</p>
           </div>
         </div>
         <button

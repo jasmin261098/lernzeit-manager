@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Clock, TrendingUp, AlertTriangle, Target } from 'lucide-react';
+import { Clock, TrendingUp, Trophy, Target } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface GoalProgress {
@@ -104,7 +104,7 @@ export default function DashboardView() {
               </p>
             </div>
             <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-amber-600" />
+              <Trophy className="w-5 h-5 text-amber-600" />
             </div>
           </div>
         </div>
