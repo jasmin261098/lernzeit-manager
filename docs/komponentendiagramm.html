@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lernzeit-Manager – Komponentendiagramm</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #f1f5f9;
+      padding: 40px 32px;
+      min-width: 860px;
+      color: #1e293b;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+    }
+    header p {
+      margin-top: 6px;
+      font-size: 0.825rem;
+      color: #64748b;
+    }
+
+    /* ── Layers ─────────────────────────────────────────── */
+    .layer {
+      border-radius: 18px;
+      padding: 18px 20px 20px;
+      position: relative;
+    }
+
+    .layer-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .layer-browser {
+      background: linear-gradient(150deg, #eff6ff 0%, #dbeafe 100%);
+      border: 2px solid #93c5fd;
+    }
+    .layer-browser .layer-title { color: #1d4ed8; }
+
+    .layer-docker {
+      background: linear-gradient(150deg, #0f172a 0%, #1e293b 100%);
+      border: 2px solid #334155;
+    }
+    .layer-docker .layer-title { color: #7dd3fc; }
+
+    .layer-db {
+      background: linear-gradient(150deg, #fffbeb 0%, #fef3c7 100%);
+      border: 2px solid #fcd34d;
+    }
+    .layer-db .layer-title { color: #92400e; }
+
+    /* ── Section labels inside layers ───────────────────── */
+    .section-label {
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin: 10px 0 8px;
+    }
+    .sl-light { color: #475569; }
+    .sl-dark  { color: #64748b; }
+
+    /* ── Component rows ──────────────────────────────────── */
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: nowrap;
+      margin-bottom: 0;
+    }
+
+    /* ── Component cards ─────────────────────────────────── */
+    .c {
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex: 1;
+      cursor: default;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .c:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+    }
+    .c-icon { font-size: 1.1rem; line-height: 1; }
+    .c-name  { font-size: 0.78rem; font-weight: 700; line-height: 1.25; }
+    .c-desc  { font-size: 0.67rem; opacity: 0.75; line-height: 1.35; }
+
+    /* Frontend card colours */
+    .c-view       { background: #fff; border: 1.5px solid #bfdbfe; color: #1e40af; }
+    .c-sidebar    { background: #e0f2fe; border: 1.5px solid #7dd3fc; color: #0c4a6e; }
+    .c-notif      { background: #fdf4ff; border: 1.5px solid #d946ef; color: #701a75; }
+    .c-auth-page  { background: #fefce8; border: 1.5px solid #fbbf24; color: #78350f; }
+    .c-auth-ctx   { background: #f0fdf4; border: 1.5px solid #4ade80; color: #14532d; flex: 2; }
+    .c-storage    { background: #f8fafc; border: 1.5px dashed #94a3b8; color: #475569; }
+    .c-apiclient  { background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; border: none; }
+
+    /* Backend card colours */
+    .c-route      { background: #0d9488; color: #fff; border: none; }
+    .c-mw         { background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff; border: none; flex: 1; }
+    .c-ctrl       { background: #0369a1; color: #fff; border: none; }
+    .c-prisma     { background: linear-gradient(135deg, #0891b2, #0e7490); color: #fff; border: none; flex: 3; }
+    .c-cron       { background: #ea580c; color: #fff; border: none; flex: 1; }
+
+    /* DB card colours */
+    .c-table      { background: #fff; border: 1.5px solid #fcd34d; color: #78350f; }
+
+    /* ── Flow arrows between layers ──────────────────────── */
+    .flow-arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0;
+      gap: 0;
+    }
+    .fa-line {
+      width: 2px;
+      height: 20px;
+    }
+    .fa-line-blue { background: linear-gradient(180deg, #3b82f6, #6366f1); }
+    .fa-line-amber { background: linear-gradient(180deg, #6366f1, #d97706); }
+
+    .fa-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #475569;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 3px 14px;
+      margin: 4px 0;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .fa-head-blue  { border-top: 11px solid #6366f1; border-left: 7px solid transparent; border-right: 7px solid transparent; }
+    .fa-head-amber { border-top: 11px solid #d97706; border-left: 7px solid transparent; border-right: 7px solid transparent; }
+
+    /* ── Mini arrows inside docker layer ────────────────── */
+    .inner-flow {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 0 5px 2px;
+    }
+    .inner-flow-line {
+      width: 1.5px;
+      height: 18px;
+      background: rgba(148,163,184,0.4);
+      margin-left: 18px;
+    }
+    .inner-flow-label {
+      font-size: 0.62rem;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Lernzeit-Manager — Komponentendiagramm</h1>
+  <p>React SPA &nbsp;·&nbsp; Express REST API &nbsp;·&nbsp; SQLite &nbsp;·&nbsp; Docker Compose</p>
+</header>
+
+<!-- ═══════════════════  BROWSER  ═══════════════════ -->
+<div class="layer layer-browser">
+  <div class="layer-title">Browser</div>
+
+  <div class="section-label sl-light">React SPA &nbsp;—&nbsp; Vite · TypeScript · Tailwind CSS</div>
+
+  <!-- Nav + Views -->
+  <div class="row">
+    <div class="c c-sidebar">
+      <span class="c-name">Sidebar</span>
+      <span class="c-desc">Navigation</span>
+    </div>
+    <div class="c c-notif">
+      <span class="c-name">Notification­Bell</span>
+      <span class="c-desc">Erinnerungen</span>
+    </div>
+    <div class="c c-view">
+      <span class="c-name">Dashboard­View</span>
+      <span class="c-desc">Übersicht &amp; Fortschritt</span>
+    </div>
+    <div class="c c-view">
+      <span class="c-name">GoalsView</span>
+      <span class="c-desc">Lernziele CRUD</span>
+    </div>
+    <div class="c c-view">
+      <span class="c-name">PlanningView</span>
+      <span class="c-desc">Grob- &amp; Detailplanung</span>
+    </div>
+    <div class="c c-view">
+      <span class="c-name">TimerView</span>
+      <span class="c-desc">Fokus-Timer</span>
+    </div>
+  </div>
+
+  <div style="height: 10px"></div>
+
+  <!-- Auth + Context + LocalStorage -->
+  <div class="row">
+    <div class="c c-auth-page">
+      <span class="c-name">AuthPage</span>
+      <span class="c-desc">Login · Register</span>
+    </div>
+    <div class="c c-auth-ctx">
+      <span class="c-name">AuthProvider (React Context)</span>
+      <span class="c-desc">JWT-State &nbsp;·&nbsp; signIn &nbsp;·&nbsp; signOut</span>
+    </div>
+    <div class="c c-storage">
+      <span class="c-name">localStorage</span>
+      <span class="c-desc">JWT · E-Mail</span>
+    </div>
+  </div>
+
+  <div style="height: 10px"></div>
+
+  <!-- API Client -->
+  <div class="row">
+    <div class="c c-apiclient">
+      <span class="c-name">api.ts — Zentraler HTTP-Client</span>
+      <span class="c-desc">Authorization: Bearer &lt;JWT&gt; &nbsp;·&nbsp; GET · POST · PUT · PATCH · DELETE</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════  ARROW 1  ═══════════════════ -->
+<div class="flow-arrow">
+  <div class="fa-line fa-line-blue"></div>
+  <div class="fa-badge">HTTP / REST &nbsp;→&nbsp; /api/* &nbsp;·&nbsp; Vite-Proxy &nbsp;→&nbsp; http://backend:3000</div>
+  <div class="fa-line fa-line-blue"></div>
+  <div class="fa-head-blue"></div>
+</div>
+
+<!-- ═══════════════════  DOCKER / BACKEND  ═══════════════════ -->
+<div class="layer layer-docker">
+  <div class="layer-title">Docker Compose &nbsp;—&nbsp; Backend (Node.js · Express · Port 3000)</div>
+
+  <!-- Routes -->
+  <div class="section-label sl-dark">Routes</div>
+  <div class="row">
+    <div class="c c-route">
+      <span class="c-name">/auth</span>
+      <span class="c-desc">öffentlich</span>
+    </div>
+    <div class="c c-route">
+      <span class="c-name">/goals</span>
+      <span class="c-desc">geschützt</span>
+    </div>
+    <div class="c c-route">
+      <span class="c-name">/plans</span>
+      <span class="c-desc">geschützt</span>
+    </div>
+    <div class="c c-route">
+      <span class="c-name">/sessions</span>
+      <span class="c-desc">geschützt</span>
+    </div>
+    <div class="c c-route">
+      <span class="c-name">/reminders</span>
+      <span class="c-desc">geschützt</span>
+    </div>
+    <div class="c c-route">
+      <span class="c-name">/dashboard</span>
+      <span class="c-desc">geschützt</span>
+    </div>
+  </div>
+
+  <!-- inner arrow -->
+  <div class="inner-flow">
+    <div class="inner-flow-line"></div>
+    <span class="inner-flow-label">↓ alle geschützten Routen durchlaufen</span>
+  </div>
+
+  <!-- Middleware -->
+  <div class="section-label sl-dark">Middleware</div>
+  <div class="row">
+    <div class="c c-mw">
+      <span class="c-name">JWT-Auth-Middleware</span>
+      <span class="c-desc">Token-Verifikation &nbsp;·&nbsp; req.user = &#123; userId &#125;</span>
+    </div>
+  </div>
+
+  <!-- inner arrow -->
+  <div class="inner-flow">
+    <div class="inner-flow-line"></div>
+    <span class="inner-flow-label">↓</span>
+  </div>
+
+  <!-- Controllers -->
+  <div class="section-label sl-dark">Controller</div>
+  <div class="row">
+    <div class="c c-ctrl">
+      <span class="c-name">authController</span>
+      <span class="c-desc">register · login</span>
+    </div>
+    <div class="c c-ctrl">
+      <span class="c-name">goalController</span>
+      <span class="c-desc">CRUD + Status</span>
+    </div>
+    <div class="c c-ctrl">
+      <span class="c-name">planController</span>
+      <span class="c-desc">CRUD + Monthly</span>
+    </div>
+    <div class="c c-ctrl">
+      <span class="c-name">sessionController</span>
+      <span class="c-desc">start · stop</span>
+    </div>
+    <div class="c c-ctrl">
+      <span class="c-name">reminderController</span>
+      <span class="c-desc">CRUD</span>
+    </div>
+    <div class="c c-ctrl">
+      <span class="c-name">dashboardController</span>
+      <span class="c-desc">Aggregation</span>
+    </div>
+  </div>
+
+  <!-- inner arrow -->
+  <div class="inner-flow">
+    <div class="inner-flow-line"></div>
+    <span class="inner-flow-label">↓</span>
+  </div>
+
+  <!-- Prisma + Cron -->
+  <div class="row">
+    <div class="c c-prisma">
+      <span class="c-name">Prisma Client (ORM)</span>
+      <span class="c-desc">PrismaBetterSQLite3 Adapter &nbsp;·&nbsp; DATABASE_URL</span>
+    </div>
+    <div class="c c-cron">
+      <span class="c-name">Cron-Job</span>
+      <span class="c-desc">jede Minute &nbsp;·&nbsp; Reminder-Dispatch</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════  ARROW 2  ═══════════════════ -->
+<div class="flow-arrow">
+  <div class="fa-line fa-line-amber"></div>
+  <div class="fa-badge">SQLite-Datei &nbsp;·&nbsp; /app/data/dev.db (Docker Volume)</div>
+  <div class="fa-line fa-line-amber"></div>
+  <div class="fa-head-amber"></div>
+</div>
+
+<!-- ═══════════════════  DATABASE  ═══════════════════ -->
+<div class="layer layer-db">
+  <div class="layer-title">SQLite Datenbank &nbsp;—&nbsp; Prisma Schema</div>
+  <div class="row">
+    <div class="c c-table">
+      <span class="c-name">User</span>
+      <span class="c-desc">email · passwordHash</span>
+    </div>
+    <div class="c c-table">
+      <span class="c-name">LearningGoal</span>
+      <span class="c-desc">targetHours · status</span>
+    </div>
+    <div class="c c-table">
+      <span class="c-name">LearningPlan</span>
+      <span class="c-desc">title · startDate · endDate</span>
+    </div>
+    <div class="c c-table">
+      <span class="c-name">MonthlyPlan</span>
+      <span class="c-desc">month · year · plannedHours</span>
+    </div>
+    <div class="c c-table">
+      <span class="c-name">StudySession</span>
+      <span class="c-desc">startTime · duration</span>
+    </div>
+    <div class="c c-table">
+      <span class="c-name">Reminder</span>
+      <span class="c-desc">scheduledAt · sent</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

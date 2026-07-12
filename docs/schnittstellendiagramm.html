@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lernzeit-Manager – Schnittstellendiagramm</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #f1f5f9;
+      padding: 40px 32px;
+      color: #1e293b;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+    }
+    header p {
+      margin-top: 6px;
+      font-size: 0.825rem;
+      color: #64748b;
+    }
+
+    /* ── Layout ─────────────────────────────────────────── */
+    .layout {
+      display: grid;
+      grid-template-columns: 160px 1fr 160px;
+      gap: 12px;
+      align-items: center;
+    }
+
+    /* ── Side blocks ─────────────────────────────────────── */
+    .side {
+      border-radius: 14px;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .side-title {
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+    .side-frontend { background: linear-gradient(150deg, #eff6ff, #dbeafe); border: 2px solid #93c5fd; }
+    .side-frontend .side-title { color: #1d4ed8; }
+    .side-backend  { background: linear-gradient(150deg, #0f172a, #1e293b); border: 2px solid #334155; }
+    .side-backend  .side-title { color: #7dd3fc; }
+
+    .chip {
+      border-radius: 7px;
+      padding: 6px 9px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      line-height: 1.3;
+      cursor: default;
+      transition: transform 0.12s ease;
+    }
+    .chip:hover { transform: translateY(-2px); }
+    .chip-fe  { background: #fff; border: 1.5px solid #bfdbfe; color: #1e40af; }
+    .chip-be  { background: #0369a1; color: #fff; }
+    .chip-mw  { background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #fff; }
+    .chip-db  { background: #fff; border: 1.5px solid #fcd34d; color: #78350f; }
+    .chip-cron { background: #ea580c; color: #fff; }
+
+    /* ── Center: API groups grid ─────────────────────────── */
+    .center {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* JWT bar */
+    .jwt-bar {
+      background: #fdf2f8;
+      border: 1.5px solid #fbcfe8;
+      border-radius: 10px;
+      padding: 7px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.7rem;
+    }
+    .jwt-label {
+      font-weight: 700;
+      color: #831843;
+      white-space: nowrap;
+    }
+    .jwt-code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.68rem;
+      color: #9d174d;
+      background: #fff;
+      border: 1px solid #fce7f3;
+      border-radius: 5px;
+      padding: 2px 8px;
+    }
+    .jwt-note {
+      font-size: 0.65rem;
+      color: #9ca3af;
+      font-style: italic;
+    }
+
+    /* API groups 2-column */
+    .api-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .api-group {
+      border-radius: 11px;
+      overflow: hidden;
+      border: 1.5px solid #e2e8f0;
+    }
+    .api-head {
+      padding: 6px 11px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .lock {
+      font-size: 0.6rem;
+      opacity: 0.6;
+      font-weight: 400;
+    }
+    .ah-auth     { background: #fef9c3; color: #78350f; }
+    .ah-goals    { background: #dbeafe; color: #1e40af; }
+    .ah-plans    { background: #dcfce7; color: #14532d; }
+    .ah-sessions { background: #ede9fe; color: #4c1d95; }
+    .ah-remind   { background: #fdf4ff; color: #701a75; }
+    .ah-dash     { background: #f0f9ff; color: #0c4a6e; }
+
+    .api-body {
+      background: #fafafa;
+      padding: 6px 10px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .ep {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      font-size: 0.67rem;
+    }
+    .method {
+      font-size: 0.58rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      border-radius: 3px;
+      padding: 1px 5px;
+      min-width: 40px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .m-get    { background: #dcfce7; color: #166534; }
+    .m-post   { background: #dbeafe; color: #1e40af; }
+    .m-put    { background: #fef3c7; color: #92400e; }
+    .m-patch  { background: #ede9fe; color: #4c1d95; }
+    .m-delete { background: #fee2e2; color: #991b1b; }
+    .path {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      color: #374151;
+      font-size: 0.66rem;
+    }
+
+    /* ── Connecting arrows ───────────────────────────────── */
+    .arrow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      height: 2px;
+      position: relative;
+      margin: 0 -4px;
+    }
+    .arrow-shaft {
+      flex: 1;
+      height: 2px;
+    }
+    .a-left  { background: linear-gradient(90deg, #93c5fd, #a5b4fc); }
+    .a-right { background: linear-gradient(90deg, #a5b4fc, #7dd3fc); }
+    .a-head-r {
+      width: 0; height: 0;
+      border-left: 8px solid #7dd3fc;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+    }
+    .a-head-l {
+      width: 0; height: 0;
+      border-right: 8px solid #93c5fd;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+    }
+
+    /* Vite proxy note */
+    .proxy-note {
+      text-align: center;
+      font-size: 0.62rem;
+      color: #94a3b8;
+      margin-top: -2px;
+    }
+    .proxy-mono {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      background: #f1f5f9;
+      border-radius: 4px;
+      padding: 1px 5px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Lernzeit-Manager — Schnittstellendiagramm</h1>
+  <p>REST-API zwischen Frontend und Backend</p>
+</header>
+
+<div class="layout">
+
+  <!-- ── Frontend ── -->
+  <div class="side side-frontend">
+    <div class="side-title">Frontend</div>
+    <div class="chip chip-fe">DashboardView</div>
+    <div class="chip chip-fe">GoalsView</div>
+    <div class="chip chip-fe">PlanningView</div>
+    <div class="chip chip-fe">TimerView</div>
+    <div class="chip chip-fe">NotificationBell</div>
+    <div class="chip chip-fe" style="background:#f0fdf4;border-color:#4ade80;color:#14532d">AuthProvider</div>
+    <div class="chip chip-fe" style="background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border:none">api.ts</div>
+  </div>
+
+  <!-- ── Center ── -->
+  <div class="center">
+
+    <!-- arrow left→center -->
+    <div style="display:flex;align-items:center;gap:0;margin-bottom:-4px">
+      <div class="arrow-shaft a-left"></div>
+      <div class="a-head-r"></div>
+    </div>
+    <div class="proxy-note"><span class="proxy-mono">/api/*</span> → Vite-Proxy → <span class="proxy-mono">http://backend:3000</span></div>
+    <div style="display:flex;align-items:center;gap:0;margin-top:-4px;margin-bottom:4px">
+      <div class="a-head-l"></div>
+      <div class="arrow-shaft a-right"></div>
+    </div>
+
+    <!-- JWT bar -->
+    <div class="jwt-bar">
+      <span class="jwt-label">JWT</span>
+      <span class="jwt-code">Authorization: Bearer &lt;token&gt;</span>
+      <span class="jwt-note">Pflicht-Header für alle geschützten Routen</span>
+    </div>
+
+    <!-- API groups -->
+    <div class="api-grid">
+
+      <div class="api-group">
+        <div class="api-head ah-auth">/auth <span class="lock">öffentlich</span></div>
+        <div class="api-body">
+          <div class="ep"><span class="method m-post">POST</span><span class="path">/register</span></div>
+          <div class="ep"><span class="method m-post">POST</span><span class="path">/login</span></div>
+        </div>
+      </div>
+
+      <div class="api-group">
+        <div class="api-head ah-dash">/dashboard <span class="lock">🔒</span></div>
+        <div class="api-body">
+          <div class="ep"><span class="method m-get">GET</span><span class="path">/dashboard</span></div>
+        </div>
+      </div>
+
+      <div class="api-group">
+        <div class="api-head ah-goals">/goals <span class="lock">🔒</span></div>
+        <div class="api-body">
+          <div class="ep"><span class="method m-get">GET</span><span class="path">/goals</span></div>
+          <div class="ep"><span class="method m-post">POST</span><span class="path">/goals</span></div>
+          <div class="ep"><span class="method m-put">PUT</span><span class="path">/goals/:id</span></div>
+          <div class="ep"><span class="method m-delete">DELETE</span><span class="path">/goals/:id</span></div>
+          <div class="ep"><span class="method m-patch">PATCH</span><span class="path">/goals/:id/status</span></div>
+        </div>
+      </div>
+
+      <div class="api-group">
+        <div class="api-head ah-sessions">/sessions <span class="lock">🔒</span></div>
+        <div class="api-body">
+          <div class="ep"><span class="method m-get">GET</span><span class="path">/sessions</span></div>
+          <div class="ep"><span class="method m-post">POST</span><span class="path">/sessions/start</span></div>
+          <div class="ep"><span class="method m-patch">PATCH</span><span class="path">/sessions/:id/stop</span></div>
+        </div>
+      </div>
+
+      <div class="api-group">
+        <div class="api-head ah-plans">/plans <span class="lock">🔒</span></div>
+        <div class="api-body">
+          <div class="ep"><span class="method m-get">GET</span><span class="path">/plans</span></div>
+          <div class="ep"><span class="method m-post">POST</span><span class="path">/plans</span></div>
+          <div class="ep"><span class="method m-put">PUT</span><span class="path">/plans/:id</span></div>
+          <div class="ep"><span class="method m-delete">DELETE</span><span class="path">/plans/:id</span></div>
+          <div class="ep"><span class="method m-post">POST</span><span class="path">/plans/:id/monthly</span></div>
+          <div class="ep"><span class="method m-put">PUT</span><span class="path">/plans/:id/monthly/:mId</span></div>
+          <div class="ep"><span class="method m-delete">DELETE</span><span class="path">/plans/:id/monthly/:mId</span></div>
+        </div>
+      </div>
+
+      <div class="api-group">
+        <div class="api-head ah-remind">/reminders <span class="lock">🔒</span></div>
+        <div class="api-body">
+          <div class="ep"><span class="method m-get">GET</span><span class="path">/reminders</span></div>
+          <div class="ep"><span class="method m-post">POST</span><span class="path">/reminders</span></div>
+          <div class="ep"><span class="method m-delete">DELETE</span><span class="path">/reminders/:id</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Backend ── -->
+  <div class="side side-backend">
+    <div class="side-title">Backend</div>
+    <div class="chip chip-mw">JWT-Middleware</div>
+    <div class="chip chip-be">authController</div>
+    <div class="chip chip-be">goalController</div>
+    <div class="chip chip-be">planController</div>
+    <div class="chip chip-be">sessionController</div>
+    <div class="chip chip-be">reminderController</div>
+    <div class="chip chip-be">dashboardController</div>
+    <div class="chip" style="background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff">Prisma ORM</div>
+    <div class="chip chip-db">SQLite</div>
+    <div class="chip chip-cron">Cron-Job</div>
+  </div>
+
+</div>
+
+</body>
+</html>

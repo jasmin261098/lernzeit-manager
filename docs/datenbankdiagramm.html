@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lernzeit-Manager – Datenbankdiagramm</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #f1f5f9;
+      padding: 40px 32px;
+      color: #1e293b;
+    }
+
+    header { text-align: center; margin-bottom: 32px; }
+    header h1 { font-size: 1.5rem; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; }
+    header p { margin-top: 6px; font-size: 0.825rem; color: #64748b; }
+
+    /* ── Diagram wrapper ─────────────────────────────────── */
+    .wrap {
+      position: relative;
+      width: 760px;
+      height: 860px;
+      margin: 0 auto;
+    }
+
+    /* ── Table cards ─────────────────────────────────────── */
+    .tbl {
+      position: absolute;
+      width: 190px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.09);
+      transition: box-shadow 0.15s ease, transform 0.15s ease;
+      z-index: 1;
+    }
+    .tbl:hover {
+      box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+      transform: translateY(-2px);
+    }
+
+    .tbl-head {
+      height: 36px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .tbl-body {
+      background: #fff;
+      border: 1.5px solid #e2e8f0;
+      border-top: none;
+      border-radius: 0 0 12px 12px;
+      padding: 8px 0;
+    }
+
+    .field {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 10px;
+      height: 24px;
+      font-size: 0.67rem;
+    }
+    .field:hover { background: #f8fafc; }
+
+    .fname {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      color: #374151;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .fname.pk  { font-weight: 700; color: #111827; }
+    .fname.opt { color: #9ca3af; }
+
+    .ftype {
+      font-size: 0.62rem;
+      color: #94a3b8;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      flex-shrink: 0;
+    }
+
+    .tag {
+      font-size: 0.55rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      border-radius: 3px;
+      padding: 1px 4px;
+      flex-shrink: 0;
+    }
+    .tag-pk { background: #fef3c7; color: #92400e; }
+    .tag-fk { background: #dbeafe; color: #1e40af; }
+
+    /* Table header colours */
+    .h-user    { background: #1e293b; color: #f1f5f9; }
+    .h-goal    { background: #1d4ed8; color: #fff; }
+    .h-plan    { background: #15803d; color: #fff; }
+    .h-monthly { background: #166534; color: #dcfce7; }
+    .h-session { background: #6d28d9; color: #fff; }
+    .h-remind  { background: #a21caf; color: #fff; }
+
+    /* Table body border colours */
+    .b-user    { border-color: #475569; }
+    .b-goal    { border-color: #93c5fd; }
+    .b-plan    { border-color: #86efac; }
+    .b-monthly { border-color: #bbf7d0; }
+    .b-session { border-color: #c4b5fd; }
+    .b-remind  { border-color: #f0abfc; }
+
+    /* ── SVG relations layer ─────────────────────────────── */
+    .svg-rel {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      overflow: visible;
+      z-index: 0;
+    }
+
+    /* ── Legend ──────────────────────────────────────────── */
+    .legend {
+      display: flex;
+      gap: 28px;
+      justify-content: center;
+      margin-top: 20px;
+      font-size: 0.72rem;
+      color: #64748b;
+    }
+    .leg-item { display: flex; align-items: center; gap: 7px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Lernzeit-Manager — Datenbankdiagramm</h1>
+  <p>Prisma Schema · SQLite · 6 Tabellen</p>
+</header>
+
+<div class="wrap">
+
+  <!-- ═══════  SVG RELATIONS  ═══════ -->
+  <svg class="svg-rel">
+
+    <!-- shared line style -->
+    <style>
+      .ln  { stroke:#94a3b8; stroke-width:1.5; fill:none; }
+      .ln-dash { stroke:#94a3b8; stroke-width:1.5; fill:none; stroke-dasharray:5,3; }
+      .lbl { font-size:10px; font-family:-apple-system,system-ui,sans-serif;
+             fill:#64748b; font-weight:700; }
+    </style>
+
+    <!-- ① User → Reminder (1:n) -->
+    <path class="ln" d="M 260,134 L 232,134 L 232,158 L 210,158"/>
+    <text class="lbl" x="244" y="129">1</text>
+    <text class="lbl" x="214" y="172">n</text>
+
+    <!-- ② User → LearningGoal (1:n) -->
+    <path class="ln" d="M 450,122 L 483,122 L 483,194 L 520,194"/>
+    <text class="lbl" x="454" y="117">1</text>
+    <text class="lbl" x="488" y="190">n</text>
+
+    <!-- ③ User → LearningPlan (1:n) -->
+    <path class="ln" d="M 355,208 L 355,310"/>
+    <text class="lbl" x="360" y="223">1</text>
+    <text class="lbl" x="360" y="302">n</text>
+
+    <!-- ④ User → StudySession (1:n) — routes in gap between columns -->
+    <path class="ln" d="M 450,146 L 494,146 L 494,520 L 520,520"/>
+    <text class="lbl" x="454" y="141">1</text>
+    <text class="lbl" x="497" y="514">n</text>
+
+    <!-- ⑤ LearningGoal → StudySession (0..1 : n, optional) -->
+    <path class="ln-dash" d="M 615,328 L 615,410"/>
+    <text class="lbl" x="619" y="343">0..1</text>
+    <text class="lbl" x="619" y="403">n</text>
+
+    <!-- ⑥ LearningPlan → MonthlyPlan (1:n, cascade delete) -->
+    <path class="ln" d="M 355,506 L 355,590"/>
+    <text class="lbl" x="360" y="521">1</text>
+    <text class="lbl" x="360" y="582">n</text>
+
+  </svg>
+
+  <!-- ═══════  TABLE: User  ═══════ -->
+  <div class="tbl" style="left:260px;top:60px">
+    <div class="tbl-head h-user">User</div>
+    <div class="tbl-body b-user">
+      <div class="field"><span class="tag tag-pk">PK</span><span class="fname pk">id</span><span class="ftype">Int</span></div>
+      <div class="field"><span class="fname">email</span><span class="ftype">String</span></div>
+      <div class="field"><span class="fname">passwordHash</span><span class="ftype">String</span></div>
+      <div class="field"><span class="fname">createdAt</span><span class="ftype">DateTime</span></div>
+    </div>
+  </div>
+
+  <!-- ═══════  TABLE: Reminder  ═══════ -->
+  <div class="tbl" style="left:20px;top:60px">
+    <div class="tbl-head h-remind">Reminder</div>
+    <div class="tbl-body b-remind">
+      <div class="field"><span class="tag tag-pk">PK</span><span class="fname pk">id</span><span class="ftype">Int</span></div>
+      <div class="field"><span class="tag tag-fk">FK</span><span class="fname">userId</span><span class="ftype">Int</span></div>
+      <div class="field"><span class="fname">message</span><span class="ftype">String</span></div>
+      <div class="field"><span class="fname">scheduledAt</span><span class="ftype">DateTime</span></div>
+      <div class="field"><span class="fname">sent</span><span class="ftype">Boolean</span></div>
+      <div class="field"><span class="fname">createdAt</span><span class="ftype">DateTime</span></div>
+    </div>
+  </div>
+
+  <!-- ═══════  TABLE: LearningGoal  ═══════ -->
+  <div class="tbl" style="left:520px;top:60px">
+    <div class="tbl-head h-goal">LearningGoal</div>
+    <div class="tbl-body b-goal">
+      <div class="field"><span class="tag tag-pk">PK</span><span class="fname pk">id</span><span class="ftype">Int</span></div>
+      <div class="field"><span class="tag tag-fk">FK</span><span class="fname">userId</span><span class="ftype">Int</span></div>
+      <div class="field"><span class="fname">title</span><span class="ftype">String</span></div>
+      <div class="field"><span class="fname opt">description</span><span class="ftype">String?</span></div>
+      <div class="field"><span class="fname">targetHours</span><span class="ftype">Float</span></div>
+      <div class="field"><span class="fname">startDate</span><span class="ftype">DateTime</span></div>
+      <div class="field"><span class="fname">endDate</span><span class="ftype">DateTime</span></div>
+      <div class="field"><span class="fname">status</span><span class="ftype">Enum</span></div>
+      <div class="field"><span class="fname">createdAt</span><span class="ftype">DateTime</span></div>
+    </div>
+  </div>
+
+  <!-- ═══════  TABLE: LearningPlan  ═══════ -->
+  <div class="tbl" style="left:260px;top:310px">
+    <div class="tbl-head h-plan">LearningPlan</div>
+    <div class="tbl-body b-plan">
+      <div class="field"><span class="tag tag-pk">PK</span><span class="fname pk">id</span><span class="ftype">Int</span></div>
+      <div class="field"><span class="tag tag-fk">FK</span><span class="fname">userId</span><span class="ftype">Int</span></div>
+      <div class="field"><span class="fname">title</span><span class="ftype">String</span></div>
+      <div class="field"><span class="fname">startDate</span><span class="ftype">DateTime</span></div>
+      <div class="field"><span class="fname">endDate</span><span class="ftype">DateTime</span></div>
+      <div class="field"><span class="fname">createdAt</span><span class="ftype">DateTime</span></div>
+    </div>
+  </div>
+
+  <!-- ═══════  TABLE: MonthlyPlan  ═══════ -->
+  <div class="tbl" style="left:260px;top:590px">
+    <div class="tbl-head h-monthly">MonthlyPlan</div>
+    <div class="tbl-body b-monthly">
+      <div class="field"><span class="tag tag-pk">PK</span><span class="fname pk">id</span><span class="ftype">Int</span></div>
+      <div class="field"><span class="tag tag-fk">FK</span><span class="fname">learningPlanId</span><span class="ftype">Int</span></div>
+      <div class="field"><span class="fname">month</span><span class="ftype">Int</span></div>
+      <div class="field"><span class="fname">year</span><span class="ftype">Int</span></div>
+      <div class="field"><span class="fname">plannedHours</span><span class="ftype">Float</span></div>
+      <div class="field"><span class="fname opt">notes</span><span class="ftype">String?</span></div>
+      <div class="field"><span class="fname">createdAt</span><span class="ftype">DateTime</span></div>
+    </div>
+  </div>
+
+  <!-- ═══════  TABLE: StudySession  ═══════ -->
+  <div class="tbl" style="left:520px;top:410px">
+    <div class="tbl-head h-session">StudySession</div>
+    <div class="tbl-body b-session">
+      <div class="field"><span class="tag tag-pk">PK</span><span class="fname pk">id</span><span class="ftype">Int</span></div>
+      <div class="field"><span class="tag tag-fk">FK</span><span class="fname">userId</span><span class="ftype">Int</span></div>
+      <div class="field"><span class="tag tag-fk">FK</span><span class="fname opt">goalId</span><span class="ftype">Int?</span></div>
+      <div class="field"><span class="fname">startTime</span><span class="ftype">DateTime</span></div>
+      <div class="field"><span class="fname opt">endTime</span><span class="ftype">DateTime?</span></div>
+      <div class="field"><span class="fname opt">duration</span><span class="ftype">Int?</span></div>
+      <div class="field"><span class="fname opt">topic</span><span class="ftype">String?</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════  LEGEND  ═══════ -->
+<div class="legend">
+  <div class="leg-item">
+    <span class="tag tag-pk" style="font-size:0.65rem;padding:2px 6px">PK</span>
+    <span>Primary Key</span>
+  </div>
+  <div class="leg-item">
+    <span class="tag tag-fk" style="font-size:0.65rem;padding:2px 6px">FK</span>
+    <span>Foreign Key</span>
+  </div>
+  <div class="leg-item">
+    <span style="color:#9ca3af;font-family:monospace">field?</span>
+    <span>Optional</span>
+  </div>
+  <div class="leg-item">
+    <svg width="32" height="12"><line x1="0" y1="6" x2="32" y2="6" stroke="#94a3b8" stroke-width="1.5"/></svg>
+    <span>1 : n</span>
+  </div>
+  <div class="leg-item">
+    <svg width="32" height="12"><line x1="0" y1="6" x2="32" y2="6" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5,3"/></svg>
+    <span>0..1 : n (optional)</span>
+  </div>
+</div>
+
+</body>
+</html>
