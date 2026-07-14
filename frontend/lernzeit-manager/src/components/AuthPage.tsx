@@ -11,14 +11,38 @@ export default function AuthPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError('Bitte gib eine E-Mail-Adresse ein.');
+      return;
+    }
+
+    if (!isValidEmail(trimmedEmail)) {
+      setError('Bitte gib eine gültige E-Mail-Adresse ein.');
+      return;
+    }
+
+    if (!password.trim()) {
+      setError('Bitte gib dein Passwort ein.');
+      return;
+    }
+
+    if (view === 'register' && password.length < 8) {
+      setError('Das Passwort muss mindestens 8 Zeichen lang sein.');
+      return;
+    }
+
     setLoading(true);
 
     const { error: err } = view === 'login'
-      ? await signIn(email, password)
-      : await signUp(email, password);
+      ? await signIn(trimmedEmail, password)
+      : await signUp(trimmedEmail, password);
 
     if (err) setError(err);
     setLoading(false);
@@ -52,7 +76,7 @@ export default function AuthPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form noValidate onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">E-Mail</label>
               <div className="relative">
