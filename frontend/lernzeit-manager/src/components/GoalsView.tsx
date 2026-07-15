@@ -29,6 +29,7 @@ export default function GoalsView() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editEndDate, setEditEndDate] = useState('');
+  const [editError, setEditError] = useState('');
 
   const fetchGoals = useCallback(async () => {
     try {
@@ -85,6 +86,13 @@ export default function GoalsView() {
 
   const saveEdit = async () => {
     if (!editingId) return;
+    if (!editTitle.trim()) {
+      setError('');
+      setEditError('Bitte gib einen Titel ein');
+      return;
+    }
+
+    setEditError('');
     try {
       await api.put(`/goals/${editingId}`, { title: editTitle, endDate: editEndDate || undefined });
       setEditingId(null);
@@ -180,17 +188,22 @@ export default function GoalsView() {
               <div key={g.id} className="px-5 py-4 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
                 <div className="flex-1 min-w-0">
                   {isEditing ? (
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col gap-2 w-full">
                       <input
-                        value={editTitle} onChange={(e) => setEditTitle(e.target.value)}
-                        className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        value={editTitle} onChange={(e) => { setEditTitle(e.target.value); if (editError) setEditError(''); }}
+                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
                       />
-                      <input
-                        type="date" value={editEndDate} onChange={(e) => setEditEndDate(e.target.value)}
-                        className="w-40 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                      />
-                      <button onClick={saveEdit} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"><Save className="w-4 h-4" /></button>
-                      <button onClick={() => setEditingId(null)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"><X className="w-4 h-4" /></button>
+                      {editError && (
+                        <p className="text-sm text-rose-700">{editError}</p>
+                      )}
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="date" value={editEndDate} onChange={(e) => setEditEndDate(e.target.value)}
+                          className="w-40 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        />
+                        <button onClick={saveEdit} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"><Save className="w-4 h-4" /></button>
+                        <button onClick={() => { setEditingId(null); setEditError(''); }} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"><X className="w-4 h-4" /></button>
+                      </div>
                     </div>
                   ) : (
                     <>
