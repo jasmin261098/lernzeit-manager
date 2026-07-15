@@ -35,6 +35,8 @@ export default function PlanningView() {
   const [plans, setPlans] = useState<PlanWithMonthly[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [formError, setFormError] = useState('');
+  const [monthlyFormError, setMonthlyFormError] = useState('');
 
   // Plan form
   const [showForm, setShowForm] = useState(false);
@@ -65,6 +67,15 @@ export default function PlanningView() {
   useEffect(() => { fetchPlans(); }, [fetchPlans]);
 
   const today = () => new Date().toISOString().slice(0, 10);
+  const isPastDate = (dateString: string) => new Date(dateString) < new Date(today());
+  const currentMonthYear = () => {
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() + 1 };
+  };
+  const isPastMonth = (month: number, year: number) => {
+    const current = currentMonthYear();
+    return year < current.year || (year === current.year && month < current.month);
+  };
 
   const openAdd = () => {
     setEditingPlan(null);
@@ -89,6 +100,11 @@ export default function PlanningView() {
 
   const savePlan = async () => {
     if (!formTitle.trim() || !formStart || !formEnd) return;
+    if (isPastDate(formStart) || isPastDate(formEnd)) {
+      setFormError('Das Datum befindet sich in der Vergangenheit');
+      return;
+    }
+    setFormError('');
     setError('');
     try {
       if (editingPlan) {
@@ -139,11 +155,18 @@ export default function PlanningView() {
 
   const saveMonthly = async () => {
     if (!monthlyFormPlanId || !mFormHours) return;
+    const month = Number(mFormMonth);
+    const year = Number(mFormYear);
+    if (isPastMonth(month, year)) {
+      setMonthlyFormError('Das Datum befindet sich in der Vergangenheit');
+      return;
+    }
+    setMonthlyFormError('');
     setError('');
     try {
       const payload = {
-        month: Number(mFormMonth),
-        year: Number(mFormYear),
+        month,
+        year,
         plannedHours: parseFloat(mFormHours),
         notes: mFormNotes || undefined,
       };
@@ -249,14 +272,14 @@ export default function PlanningView() {
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Startdatum</label>
                   <input
-                    type="date" value={formStart} onChange={(e) => setFormStart(e.target.value)}
+                    type="date" min={today()} value={formStart} onChange={(e) => { setFormStart(e.target.value); if (formError) setFormError(''); }}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Enddatum</label>
                   <input
-                    type="date" value={formEnd} onChange={(e) => setFormEnd(e.target.value)}
+                    type="date" min={today()} value={formEnd} onChange={(e) => { setFormEnd(e.target.value); if (formError) setFormError(''); }}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
                   />
                 </div>
@@ -273,6 +296,12 @@ export default function PlanningView() {
                   Abbrechen
                 </button>
               </div>
+              {formError && (
+                <div className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 rounded-lg">
+                  <AlertCircle className="w-4 h-4 text-rose-500 mt-0.5 shrink-0" />
+                  <p className="text-sm text-rose-700">{formError}</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -391,7 +420,8 @@ export default function PlanningView() {
                               {monthNames.map((n, i) => <option key={i} value={i + 1}>{n.slice(0, 3)}</option>)}
                             </select>
                             <input
-                              type="number" value={mFormYear} onChange={(e) => setMFormYear(e.target.value)}
+                              type="number" value={mFormYear} onChange={(e) => { setMFormYear(e.target.value); if (monthlyFormError) setMonthlyFormError(''); }}
+                              min={CURRENT_YEAR}
                               className="w-16 px-2 py-1 border border-slate-200 rounded text-xs focus:outline-none"
                             />
                             <input
