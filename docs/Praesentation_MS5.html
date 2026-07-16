@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lernzeit-Manager – Ergebnispräsentation MS5</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue:    #2563eb;
+    --blue-dk: #1e40af;
+    --blue-lt: #dbeafe;
+    --accent:  #7c3aed;
+    --gray:    #64748b;
+    --light:   #f8fafc;
+    --white:   #ffffff;
+    --text:    #1e293b;
+    --border:  #e2e8f0;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0f172a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  /* ── slide container ── */
+  .deck {
+    width: 100%;
+    max-width: 960px;
+    position: relative;
+  }
+
+  .slide {
+    display: none;
+    background: var(--white);
+    border-radius: 16px;
+    min-height: 540px;
+    padding: 56px 64px;
+    box-shadow: 0 24px 80px rgba(0,0,0,.5);
+    flex-direction: column;
+    justify-content: center;
+    animation: fadeIn .25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .slide.active { display: flex; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* accent bar top */
+  .slide::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--blue), var(--accent));
+  }
+
+  /* ── slide variants ── */
+  .slide.title-slide {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 40%, #4f46e5 100%);
+    color: var(--white);
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding-bottom: 64px;
+  }
+  .slide.title-slide::before { display: none; }
+
+  /* ── typography ── */
+  .slide-label {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 10px;
+  }
+  .title-slide .slide-label { color: rgba(255,255,255,.6); }
+
+  h1 {
+    font-size: 2.6rem;
+    font-weight: 800;
+    line-height: 1.15;
+    color: var(--white);
+    margin-bottom: 16px;
+  }
+
+  h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 24px;
+  }
+
+  h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--blue-dk);
+    margin-bottom: 8px;
+    margin-top: 20px;
+  }
+  h3:first-of-type { margin-top: 0; }
+
+  .subtitle {
+    font-size: 1.15rem;
+    color: rgba(255,255,255,.75);
+    margin-bottom: 8px;
+  }
+
+  .meta {
+    font-size: .85rem;
+    color: rgba(255,255,255,.5);
+    margin-top: 32px;
+  }
+
+  p, li {
+    font-size: .95rem;
+    color: var(--text);
+    line-height: 1.65;
+  }
+
+  ul { padding-left: 1.3em; }
+  li { margin-bottom: 6px; }
+
+  strong { color: var(--blue-dk); }
+
+  /* ── two-column layout ── */
+  .cols { display: grid; gap: 32px; }
+  .cols-2 { grid-template-columns: 1fr 1fr; }
+  .cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  /* ── cards ── */
+  .card {
+    background: var(--light);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .card.blue  { background: var(--blue-lt); border-color: #bfdbfe; }
+  .card.green { background: #f0fdf4;       border-color: #bbf7d0; }
+  .card.purple{ background: #f5f3ff;       border-color: #ddd6fe; }
+  .card.orange{ background: #fff7ed;       border-color: #fed7aa; }
+
+  /* ── milestone list ── */
+  .milestones { display: flex; flex-direction: column; gap: 10px; }
+  .ms-row {
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    background: var(--light);
+    border-radius: 8px;
+    border-left: 4px solid var(--blue);
+  }
+  .ms-badge {
+    font-size: .72rem;
+    font-weight: 800;
+    color: var(--blue-dk);
+    background: var(--blue-lt);
+    padding: 4px 8px;
+    border-radius: 6px;
+    text-align: center;
+  }
+  .ms-title { font-size: .9rem; font-weight: 600; color: var(--text); }
+  .ms-desc  { font-size: .78rem; color: var(--gray); }
+  .ms-date  { font-size: .78rem; color: var(--gray); white-space: nowrap; }
+
+  /* ── arch diagram ── */
+  .arch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .arch-box {
+    width: 100%;
+    border-radius: 10px;
+    padding: 14px 20px;
+    text-align: center;
+  }
+  .arch-box .arch-title {
+    font-weight: 700;
+    font-size: .85rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .arch-box .arch-sub { font-size: .78rem; opacity: .85; }
+  .arch-box.frontend { background: #dbeafe; color: #1e40af; }
+  .arch-box.backend  { background: #f5f3ff; color: #5b21b6; }
+  .arch-box.database { background: #f0fdf4; color: #166534; }
+  .arch-arrow {
+    font-size: 1.2rem;
+    color: var(--gray);
+    line-height: 1.8;
+  }
+  .arch-label {
+    font-size: .72rem;
+    color: var(--gray);
+    background: #f1f5f9;
+    border-radius: 4px;
+    padding: 2px 8px;
+    margin: -2px 0 2px;
+  }
+
+  /* ── test stat ── */
+  .test-stat {
+    text-align: center;
+    padding: 20px 10px;
+  }
+  .stat-number {
+    font-size: 3rem;
+    font-weight: 900;
+    color: var(--blue-dk);
+    line-height: 1;
+  }
+  .stat-label { font-size: .8rem; color: var(--gray); margin-top: 4px; }
+  .stat-pass {
+    display: inline-block;
+    background: #dcfce7;
+    color: #166534;
+    font-size: .75rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-top: 8px;
+  }
+
+  /* ── demo steps ── */
+  .demo-steps { display: flex; flex-direction: column; gap: 10px; }
+  .demo-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 12px 16px;
+    background: var(--light);
+    border-radius: 8px;
+  }
+  .step-num {
+    min-width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--blue);
+    color: white;
+    font-size: .8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-content .step-title { font-size: .9rem; font-weight: 600; color: var(--text); }
+  .step-content .step-desc  { font-size: .78rem; color: var(--gray); margin-top: 2px; }
+  .step-time {
+    margin-left: auto;
+    font-size: .72rem;
+    color: var(--gray);
+    white-space: nowrap;
+    padding-top: 4px;
+  }
+
+  /* ── lessons card ── */
+  .lesson {
+    border-left: 3px solid var(--accent);
+    padding: 10px 14px;
+    background: var(--light);
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 10px;
+  }
+  .lesson .who { font-size: .7rem; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+
+  /* ── tag pills ── */
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .tag {
+    font-size: .75rem;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: var(--blue-lt);
+    color: var(--blue-dk);
+  }
+
+  /* ── data model ── */
+  .entity {
+    background: var(--light);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .entity-name { font-size: .8rem; font-weight: 700; color: var(--blue-dk); margin-bottom: 6px; }
+  .entity-fields { font-size: .72rem; color: var(--gray); line-height: 1.7; }
+
+  /* ── navigation ── */
+  .nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 20px;
+  }
+  .nav button {
+    background: rgba(255,255,255,.1);
+    color: white;
+    border: 1px solid rgba(255,255,255,.2);
+    padding: 10px 22px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: .9rem;
+    font-weight: 600;
+    transition: background .15s;
+  }
+  .nav button:hover { background: rgba(255,255,255,.2); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+
+  .progress-track {
+    flex: 1;
+    height: 4px;
+    background: rgba(255,255,255,.15);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--blue), var(--accent));
+    border-radius: 2px;
+    transition: width .3s ease;
+  }
+
+  .slide-counter {
+    color: rgba(255,255,255,.5);
+    font-size: .8rem;
+    white-space: nowrap;
+  }
+
+  /* ── speaker badge ── */
+  .speaker {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    font-size: .7rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: var(--blue-lt);
+    color: var(--blue-dk);
+  }
+  .title-slide .speaker { display: none; }
+
+  /* ── divider ── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 16px 0;
+  }
+
+  /* ── kbd hint ── */
+  .kbd-hint {
+    text-align: center;
+    font-size: .72rem;
+    color: rgba(255,255,255,.35);
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- ═══════════════════════════════ SLIDE 1 – TITLE ══════════════════════════════ -->
+  <div class="slide title-slide active">
+    <div class="slide-label">Meilenstein 5 · Ergebnispräsentation</div>
+    <h1>Lernzeit-<br>Manager</h1>
+    <p class="subtitle">Planung, Erfassung und Visualisierung von Lernzeiten für Studierende</p>
+    <p class="meta">
+      Vanessa Künzel &amp; Jasmin Hundt<br>
+      Projekt Software Engineering · Juli 2026
+    </p>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 2 – AGENDA ════════════════════════════ -->
+  <div class="slide">
+    <div class="slide-label">Überblick</div>
+    <h2>Agenda</h2>
+    <div class="cols cols-2">
+      <div>
+        <div class="card blue" style="margin-bottom:12px">
+          <h3 style="margin-top:0">01 · Projektablauf</h3>
+          <p>Meilensteine, Liefergegenstände &amp; Reflexion</p>
+        </div>
+        <div class="card purple" style="margin-bottom:12px">
+          <h3 style="margin-top:0">02 · Technischer Überblick</h3>
+          <p>Architektur, Datenmodell &amp; API</p>
+        </div>
+        <div class="card green">
+          <h3 style="margin-top:0">03 · Testabschlussbericht</h3>
+          <p>Unit-Tests, Ergebnisse &amp; Qualitätssicherung</p>
+        </div>
+      </div>
+      <div>
+        <div class="card orange" style="margin-bottom:12px">
+          <h3 style="margin-top:0">04 · Live-Demo</h3>
+          <p>Anwendung in Aktion · max. 7 Minuten</p>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+          <h3 style="margin-top:0">05 · Lessons Learned</h3>
+          <p>Wichtigste Erkenntnisse aus dem Projekt</p>
+        </div>
+        <div class="card" style="background:#fdf4ff;border-color:#e9d5ff">
+          <h3 style="margin-top:0;color:#6b21a8">06 · Abschluss &amp; Fragen</h3>
+          <p>Repository-Link &amp; Diskussion</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 3 – PROJEKTABLAUF ═════════════════════ -->
+  <div class="slide">
+    <div class="speaker">Jasmin</div>
+    <div class="slide-label">01 · Projektablauf</div>
+    <h2>Meilensteinplan</h2>
+    <div class="milestones">
+      <div class="ms-row">
+        <div class="ms-badge">MS0</div>
+        <div>
+          <div class="ms-title">Projektstart &amp; Planung</div>
+          <div class="ms-desc">Teamorganisation, Themenbestätigung, erste Planung</div>
+        </div>
+        <div class="ms-date">17. – 24. Mai</div>
+      </div>
+      <div class="ms-row">
+        <div class="ms-badge">MS1</div>
+        <div>
+          <div class="ms-title">Projektkonfiguration</div>
+          <div class="ms-desc">Vision, Rollen, Anforderungen, Risiken, Aufwandsschätzung</div>
+        </div>
+        <div class="ms-date">bis 31. Mai</div>
+      </div>
+      <div class="ms-row">
+        <div class="ms-badge">MS2</div>
+        <div>
+          <div class="ms-title">Konzeptvalidierung</div>
+          <div class="ms-desc">Architekturkonzept, Datenmodell, Projektvideo</div>
+        </div>
+        <div class="ms-date">bis 7. Juni</div>
+      </div>
+      <div class="ms-row">
+        <div class="ms-badge">MS3</div>
+        <div>
+          <div class="ms-title">Entwicklungs- &amp; Qualitätskonfiguration</div>
+          <div class="ms-desc">Softwareprozess, Teststrategie, Entwicklungsstart</div>
+        </div>
+        <div class="ms-date">bis 21. Juni</div>
+      </div>
+      <div class="ms-row" style="border-left-color: var(--accent)">
+        <div class="ms-badge" style="background:#f5f3ff;color:#5b21b6">MS4</div>
+        <div>
+          <div class="ms-title">Implementierung &amp; Dokumentation</div>
+          <div class="ms-desc">Alle Features, Unit-Tests, Deployment, Benutzerhandbuch</div>
+        </div>
+        <div class="ms-date">bis 5. Juli</div>
+      </div>
+      <div class="ms-row" style="border-left-color: #059669">
+        <div class="ms-badge" style="background:#f0fdf4;color:#166534">MS5</div>
+        <div>
+          <div class="ms-title">Ergebnispräsentation</div>
+          <div class="ms-desc">Diese Präsentation</div>
+        </div>
+        <div class="ms-date">bis 12. Juli</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 4 – LIEFERGEGENSTÄNDE ═════════════════ -->
+  <div class="slide">
+    <div class="speaker">Jasmin &amp; Vanessa</div>
+    <div class="slide-label">01 · Projektablauf</div>
+    <h2>Liefergegenstände &amp; Reflexion</h2>
+    <div class="cols cols-2">
+      <div>
+        <h3>Alle Liefergegenstände abgegeben ✓</h3>
+        <ul>
+          <li>Projektkonfiguration · <strong>MS1</strong></li>
+          <li>Anforderungsdokument · <strong>MS2</strong></li>
+          <li>Architekturkonzept &amp; Datenmodell · <strong>MS2</strong></li>
+          <li>Softwareentwicklungs-Konfiguration · <strong>MS3</strong></li>
+          <li>Implementierter Prototyp · <strong>MS3/4</strong></li>
+          <li>Testdokumentation · <strong>MS4</strong></li>
+          <li>Benutzerhandbuch · <strong>MS5</strong></li>
+        </ul>
+      </div>
+      <div>
+        <h3>Reflexion</h3>
+        <div class="lesson">
+          <div class="who">Technologieentscheidung</div>
+          <p>Wechsel von NestJS → Express.js war richtig – hätte aber früher entschieden werden sollen.</p>
+        </div>
+        <div class="lesson">
+          <div class="who">Testdokumentation</div>
+          <p>Hat zwei Logikfehler in der Fortschrittsberechnung aufgedeckt, die sonst unentdeckt geblieben wären.</p>
+        </div>
+        <div class="lesson">
+          <div class="who">Benutzerhandbuch</div>
+          <p>Aufwand unterschätzt – fachliche, technische &amp; Betriebsdokumentation in einem Dokument.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 5 – ARCHITEKTUR ═══════════════════════ -->
+  <div class="slide">
+    <div class="speaker">Jasmin</div>
+    <div class="slide-label">02 · Technischer Überblick</div>
+    <h2>Systemarchitektur</h2>
+    <div class="cols cols-2" style="align-items:start">
+      <div class="arch">
+        <div class="arch-box frontend">
+          <div class="arch-title">Frontend · Port 5173</div>
+          <div class="arch-sub">React 19 · TypeScript · Vite · Tailwind CSS</div>
+        </div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-label">HTTP /api/* · Vite-Proxy → http://backend:3000</div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-box backend">
+          <div class="arch-title">Backend · Port 3000</div>
+          <div class="arch-sub">Node.js · Express.js · TypeScript · Prisma ORM</div>
+        </div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-label">SQLite · Docker Volume</div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-box database">
+          <div class="arch-title">Datenbank</div>
+          <div class="arch-sub">SQLite · /app/data/dev.db</div>
+        </div>
+      </div>
+      <div>
+        <h3>Frontend-Komponenten</h3>
+        <div class="tags" style="margin-top:0;margin-bottom:14px">
+          <span class="tag">DashboardView</span>
+          <span class="tag">GoalsView</span>
+          <span class="tag">PlanningView</span>
+          <span class="tag">TimerView</span>
+          <span class="tag">NotificationBell</span>
+          <span class="tag">AuthPage</span>
+        </div>
+        <h3>Backend-Routen</h3>
+        <div class="tags" style="margin-top:0;margin-bottom:14px">
+          <span class="tag" style="background:#f5f3ff;color:#5b21b6">/auth</span>
+          <span class="tag" style="background:#f5f3ff;color:#5b21b6">/goals</span>
+          <span class="tag" style="background:#f5f3ff;color:#5b21b6">/plans</span>
+          <span class="tag" style="background:#f5f3ff;color:#5b21b6">/sessions</span>
+          <span class="tag" style="background:#f5f3ff;color:#5b21b6">/reminders</span>
+          <span class="tag" style="background:#f5f3ff;color:#5b21b6">/dashboard</span>
+        </div>
+        <h3>Deployment</h3>
+        <div class="card" style="padding:12px 14px">
+          <p style="font-size:.85rem">Ein Kommando genügt:</p>
+          <code style="display:block;background:#1e293b;color:#7dd3fc;padding:8px 12px;border-radius:6px;font-size:.8rem;margin-top:8px">docker compose up --build</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 6 – DATENMODELL ═══════════════════════ -->
+  <div class="slide">
+    <div class="speaker">Vanessa</div>
+    <div class="slide-label">02 · Technischer Überblick</div>
+    <h2>Datenmodell &amp; API</h2>
+    <div class="cols cols-2" style="align-items:start">
+      <div>
+        <h3>6 Entitäten (Prisma / SQLite)</h3>
+        <div class="cols cols-2" style="gap:10px">
+          <div class="entity">
+            <div class="entity-name">User</div>
+            <div class="entity-fields">id · email<br>passwordHash · createdAt</div>
+          </div>
+          <div class="entity">
+            <div class="entity-name">LearningGoal</div>
+            <div class="entity-fields">userId · title<br>targetHours · status<br>startDate · endDate</div>
+          </div>
+          <div class="entity">
+            <div class="entity-name">StudySession</div>
+            <div class="entity-fields">userId · goalId?<br>startTime · endTime?<br>duration · topic</div>
+          </div>
+          <div class="entity">
+            <div class="entity-name">LearningPlan</div>
+            <div class="entity-fields">userId · title<br>startDate · endDate</div>
+          </div>
+          <div class="entity">
+            <div class="entity-name">MonthlyPlan</div>
+            <div class="entity-fields">learningPlanId<br>month · year<br>plannedHours · notes</div>
+          </div>
+          <div class="entity">
+            <div class="entity-name">Reminder</div>
+            <div class="entity-fields">userId · message<br>scheduledAt · sent</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3>Geschäftsregeln</h3>
+        <ul style="font-size:.85rem">
+          <li>Status-Übergang: <strong>open → in_progress → done</strong></li>
+          <li>Max. <strong>1 aktive Session</strong> pro Nutzer gleichzeitig</li>
+          <li>Fortschritt <strong>auf 100 % begrenzt</strong>, auch bei Überschreitung</li>
+          <li>Fortschritt nur aus Sessions, die dem Ziel <strong>explizit zugeordnet</strong> sind</li>
+          <li>Cascade Delete: MonthlyPlans beim Löschen des LearningPlan</li>
+          <li>Inaktivitäts-Warnung bei &gt; 3 Tagen ohne Session</li>
+          <li>JWT-Token gültig für <strong>7 Tage</strong></li>
+        </ul>
+        <div class="divider"></div>
+        <h3>REST-API: 18 Endpunkte</h3>
+        <p style="font-size:.82rem">Alle Routen außer <code style="background:#f1f5f9;padding:1px 5px;border-radius:3px">/auth/register</code> und <code style="background:#f1f5f9;padding:1px 5px;border-radius:3px">/auth/login</code> sind durch JWT-Middleware geschützt.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 7 – TESTS ═════════════════════════════ -->
+  <div class="slide">
+    <div class="speaker">Jasmin</div>
+    <div class="slide-label">03 · Testabschlussbericht</div>
+    <h2>Backend Unit-Tests</h2>
+    <div class="cols cols-2" style="align-items:start">
+      <div>
+        <div class="cols cols-3" style="gap:12px;margin-bottom:20px">
+          <div class="test-stat">
+            <div class="stat-number">32</div>
+            <div class="stat-label">Testfälle gesamt</div>
+            <div class="stat-pass">✓ 32 bestanden</div>
+          </div>
+          <div class="test-stat">
+            <div class="stat-number">5</div>
+            <div class="stat-label">Testdateien</div>
+          </div>
+          <div class="test-stat">
+            <div class="stat-number">256</div>
+            <div class="stat-label">ms Laufzeit</div>
+          </div>
+        </div>
+        <div class="card" style="font-size:.82rem">
+          <strong>Framework:</strong> Vitest 4.x · Testdatum: 05.07.2026<br><br>
+          Alle Tests verwenden <strong>gemockte Abhängigkeiten</strong> (Prisma-Client, bcrypt, jsonwebtoken) – isoliert von Dateisystem &amp; Datenbank.
+        </div>
+      </div>
+      <div>
+        <h3>Abgedeckte Module</h3>
+        <ul style="font-size:.85rem">
+          <li><strong>Auth-Middleware</strong> – fehlendes/ungültiges Token (4 Tests)</li>
+          <li><strong>Auth-Controller</strong> – Registrierung &amp; Login inkl. Fehlerfälle (7 Tests)</li>
+          <li><strong>Goal-Controller</strong> – CRUD + alle 3 Statuswerte (10 Tests)</li>
+          <li><strong>Session-Controller</strong> – Start/Stop inkl. Doppel-Session (6 Tests)</li>
+          <li><strong>Dashboard-Controller</strong> – Stundenberechnung &amp; 100%-Cap (5 Tests)</li>
+        </ul>
+        <div class="divider"></div>
+        <h3>Manuelle Tests</h3>
+        <ul style="font-size:.85rem">
+          <li>Responsivität auf Desktop &amp; Mobilgerät (Chrome DevTools)</li>
+          <li>Antwortzeiten &lt; 2 Sekunden für alle Standardoperationen</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 8 – DEMO ══════════════════════════════ -->
+  <div class="slide">
+    <div class="speaker">Vanessa</div>
+    <div class="slide-label">04 · Live-Demo</div>
+    <h2>Demo-Durchlauf · max. 7 Minuten</h2>
+    <div class="cols cols-2" style="align-items:start">
+      <div class="demo-steps">
+        <div class="demo-step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Login mit Demo-Account</div>
+            <div class="step-desc">demo@lernzeit.de · demo1234</div>
+          </div>
+          <div class="step-time">~30 s</div>
+        </div>
+        <div class="demo-step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Dashboard</div>
+            <div class="step-desc">Gesamtstunden, Zielerreichung, Fortschrittsbalken</div>
+          </div>
+          <div class="step-time">~1 min</div>
+        </div>
+        <div class="demo-step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Lernziele verwalten</div>
+            <div class="step-desc">Neues Ziel anlegen, Status wechseln</div>
+          </div>
+          <div class="step-time">~1 min</div>
+        </div>
+        <div class="demo-step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">Lernplanung</div>
+            <div class="step-desc">Grobplan mit 6 Monatsplänen</div>
+          </div>
+          <div class="step-time">~1 min</div>
+        </div>
+        <div class="demo-step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <div class="step-title">Fokus-Timer</div>
+            <div class="step-desc">Session starten, pausieren, stoppen</div>
+          </div>
+          <div class="step-time">~1,5 min</div>
+        </div>
+        <div class="demo-step">
+          <div class="step-num">6</div>
+          <div class="step-content">
+            <div class="step-title">Erinnerungen &amp; Benachrichtigungen</div>
+            <div class="step-desc">Erinnerung anlegen, Inaktivitäts-Warnung</div>
+          </div>
+          <div class="step-time">~1 min</div>
+        </div>
+        <div class="demo-step">
+          <div class="step-num">7</div>
+          <div class="step-content">
+            <div class="step-title">Registrierung</div>
+            <div class="step-desc">Eigenen Account anlegen</div>
+          </div>
+          <div class="step-time">~30 s</div>
+        </div>
+      </div>
+      <div>
+        <div class="card green" style="margin-bottom:12px">
+          <h3 style="margin-top:0;color:#166534">Demo-Account</h3>
+          <p style="font-size:.85rem">
+            E-Mail: <strong>demo@lernzeit.de</strong><br>
+            Passwort: <strong>demo1234</strong>
+          </p>
+          <div class="divider"></div>
+          <ul style="font-size:.82rem">
+            <li>3 Lernziele vorbelegt</li>
+            <li>1 Lernplan mit 6 Monatsplänen</li>
+            <li>5 abgeschlossene Sessions</li>
+            <li>2 Erinnerungen</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">Start</h3>
+          <code style="display:block;background:#1e293b;color:#7dd3fc;padding:8px 12px;border-radius:6px;font-size:.78rem">docker compose up --build</code>
+          <p style="font-size:.78rem;margin-top:8px">→ Frontend: <strong>http://localhost:5173</strong></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 9 – LESSONS LEARNED ═══════════════════ -->
+  <div class="slide">
+    <div class="speaker">Jasmin &amp; Vanessa</div>
+    <div class="slide-label">05 · Lessons Learned</div>
+    <h2>Wichtigste Erkenntnisse</h2>
+    <div class="cols cols-2" style="align-items:start">
+      <div>
+        <div class="lesson">
+          <div class="who">Vanessa · Frontend</div>
+          <p><strong>TypeScript hat sich gelohnt.</strong> Der initiale Overhead durch Typdefinitionen hat mehrere Laufzeitfehler verhindert, die sonst erst in der Testphase aufgefallen wären.</p>
+        </div>
+        <div class="lesson">
+          <div class="who">Vanessa · DevOps</div>
+          <p><strong>Docker als Entwicklungsumgebung war die richtige Entscheidung.</strong> Beide haben auf unterschiedlichen Betriebssystemen gearbeitet – kein einziges „bei mir läuft's"-Problem.</p>
+        </div>
+        <div class="lesson">
+          <div class="who">Vanessa · Qualität</div>
+          <p><strong>Frontend-Tests früher aufsetzen.</strong> Die Backend-Unit-Tests haben viel Sicherheit gegeben – das gleiche Niveau fehlt uns auf der Frontend-Seite.</p>
+        </div>
+      </div>
+      <div>
+        <div class="lesson">
+          <div class="who">Jasmin · Backend</div>
+          <p><strong>Technologieentscheidungen am tatsächlichen Umfang messen.</strong> Der Wechsel von NestJS zu Express.js war richtig für einen Prototyp dieser Größe – hätte aber früher getroffen werden sollen.</p>
+        </div>
+        <div class="lesson">
+          <div class="who">Jasmin · Backend</div>
+          <p><strong>Prisma ORM hat sich bewährt.</strong> Typsicherer Datenbankzugriff, einfache Schemadefinition und automatisches Cascade Delete haben explizite Löschlogik eingespart.</p>
+        </div>
+        <div class="lesson">
+          <div class="who">Jasmin · Testing</div>
+          <p><strong>Tests lohnen sich auch im Studienkontext.</strong> Zwei Logikfehler in der Fortschrittsberechnung wurden durch die Unit-Tests aufgedeckt und behoben.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SLIDE 10 – ABSCHLUSS ════════════════════════ -->
+  <div class="slide">
+    <div class="speaker">Jasmin</div>
+    <div class="slide-label">06 · Abschluss</div>
+    <h2>Ergebnis &amp; Ausblick</h2>
+    <div class="cols cols-2" style="align-items:start">
+      <div>
+        <h3>Was wurde umgesetzt</h3>
+        <ul>
+          <li>Alle <strong>23 funktionalen Anforderungen</strong> implementiert</li>
+          <li>Alle <strong>5 Qualitätsanforderungen</strong> erfüllt</li>
+          <li><strong>32/32 Unit-Tests</strong> bestanden</li>
+          <li>Vollständige Docker-Deployment-Lösung</li>
+          <li>Alle Liefergegenstände fristgerecht abgegeben</li>
+        </ul>
+        <div class="divider"></div>
+        <h3>Repository</h3>
+        <div class="card blue" style="padding:12px 14px">
+          <code style="font-size:.8rem;color:#1e40af;word-break:break-all">github.com/jasmin261098/lernzeit-manager</code>
+        </div>
+      </div>
+      <div>
+        <h3>Mögliche Erweiterungen</h3>
+        <ul>
+          <li>Kalenderintegration</li>
+          <li>Mobile App (React Native)</li>
+          <li>Frontend-Unit-Tests (Vitest + Testing Library)</li>
+          <li>E-Mail-Benachrichtigungen</li>
+          <li>Exportfunktion (PDF-Report)</li>
+        </ul>
+        <div class="divider"></div>
+        <div class="card green" style="text-align:center;padding:20px">
+          <div style="font-size:1.4rem;font-weight:800;color:#166534;margin-bottom:4px">Vielen Dank!</div>
+          <p style="font-size:.85rem;color:#166534">Vanessa Künzel &amp; Jasmin Hundt</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /.deck -->
+
+<!-- ── navigation ── -->
+<div class="nav">
+  <button id="prev" onclick="move(-1)" disabled>← Zurück</button>
+  <div class="progress-track">
+    <div class="progress-fill" id="fill" style="width:10%"></div>
+  </div>
+  <span class="slide-counter" id="counter">1 / 10</span>
+  <button id="next" onclick="move(1)">Weiter →</button>
+</div>
+
+<div class="kbd-hint">← → Pfeiltasten oder Buttons zur Navigation · F für Vollbild</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let cur = 0;
+
+  function show(n) {
+    slides[cur].classList.remove('active');
+    cur = Math.max(0, Math.min(n, slides.length - 1));
+    slides[cur].classList.add('active');
+    document.getElementById('counter').textContent = (cur+1) + ' / ' + slides.length;
+    document.getElementById('fill').style.width = ((cur+1)/slides.length*100) + '%';
+    document.getElementById('prev').disabled = cur === 0;
+    document.getElementById('next').disabled = cur === slides.length - 1;
+  }
+
+  function move(d) { show(cur + d); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); move(1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                    { e.preventDefault(); move(-1); }
+    if (e.key === 'f' || e.key === 'F') { document.documentElement.requestFullscreen?.(); }
+  });
+</script>
+</body>
+</html>
