@@ -66,8 +66,30 @@ export default function PlanningView() {
 
   useEffect(() => { fetchPlans(); }, [fetchPlans]);
 
-  const today = () => new Date().toISOString().slice(0, 10);
-  const isPastDate = (dateString: string) => new Date(dateString) < new Date(today());
+  const today = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const isPastDate = (dateString: string) => {
+    const [year, month, day] = dateString.split('-').map(Number);
+    const parsed = new Date(year, month - 1, day);
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    return parsed < todayDate;
+  };
+
+  const isToday = (dateString: string) => {
+    const [year, month, day] = dateString.split('-').map(Number);
+    const parsed = new Date(year, month - 1, day);
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    return parsed.getTime() === todayDate.getTime();
+  };
+
   const currentMonthYear = () => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() + 1 };
@@ -100,7 +122,11 @@ export default function PlanningView() {
 
   const savePlan = async () => {
     if (!formTitle.trim() || !formStart || !formEnd) return;
-    if (isPastDate(formStart) || isPastDate(formEnd)) {
+    if (!editingPlan && isPastDate(formStart)) {
+      setFormError('Das Datum befindet sich in der Vergangenheit');
+      return;
+    }
+    if (isPastDate(formEnd)) {
       setFormError('Das Datum befindet sich in der Vergangenheit');
       return;
     }
