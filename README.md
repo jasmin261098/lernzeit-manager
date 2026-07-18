@@ -1,145 +1,122 @@
 # Lernzeit-Manager
 
-A study session tracker to manage and log your learning time. Built with a React/TypeScript frontend, an Express.js backend, and a SQLite database via Prisma.
+The Lernzeit-Manager is a web application for students that helps with planning, tracking, and maintaining study times and learning goals. The system assists in scheduling study sessions according to the intended workload from module handbooks, verifying compliance, and adjusting plans as needed.
 
 ## Tech Stack
 
-| Layer    | Technology                        |
-|----------|-----------------------------------|
-| Frontend | React 19, TypeScript, Vite        |
-| Backend  | Node.js, Express 4                |
-| Database | SQLite (via Prisma ORM)           |
-| DevOps   | Docker, Docker Compose            |
+| Layer     | Technology                        |
+|-----------|-----------------------------------|
+| Frontend  | React 19, TypeScript, Vite        |
+| Backend   | Node.js, Express 4                |
+| Database  | SQLite (via Prisma ORM)           |
+| DevOps    | Docker, Docker Compose            |
 
-## Project Structure
+## Prerequisites
 
-```
-lernzeit-manager/
-├── backend/                    # Express API server (port 3000)
-│   ├── prisma/
-│   │   ├── schema.prisma       # Database schema (StudySession model)
-│   │   └── migrations/         # Prisma migration history
-│   ├── src/
-│   │   └── app.js              # Express entry point
-│   ├── .env                    # Environment variables (DATABASE_URL)
-│   └── Dockerfile
-├── frontend/
-│   └── lernzeit-manager/       # React/Vite app (port 5173)
-│       ├── src/
-│       │   ├── App.tsx         # Main component
-│       │   └── main.tsx        # React entry point
-│       └── Dockerfile
-└── docker-compose.yml
+- **Docker** (version 24.x)
+- **Docker Compose** (version 2.x)
+- **Git** to clone the repository
+
+No local Node.js installation required – all dependencies are resolved inside the Docker containers.
+
+## Installation and Setup
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/jasmin261098/lernzeit-manager
+cd lernzeit-manager
 ```
 
-## Running with Docker (recommended)
+### 2. Configure environment variables
 
-### Start
+```bash
+cp backend/.env.example backend/.env
+```
+
+At minimum, set `JWT_SECRET` in `backend/.env` to a secure, random value (see [Configuration](#configuration)).
+
+### 3. Start the application
 
 ```bash
 docker compose up --build
 ```
 
-The `--build` flag rebuilds images on each start, which is useful after dependency or Dockerfile changes. Once running:
+The first start may take several minutes as Node.js dependencies are installed. On startup, the backend automatically runs the following steps (`entrypoint.sh`):
 
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:3000
+1. Create the database directory `/app/data`
+2. `prisma generate` – generate the Prisma client
+3. `prisma db push` – create/update the database schema
+4. `npm run dev` – start the development server
 
-### Stop
+### Accessing the application
+
+| Service      | URL                       |
+|--------------|---------------------------|
+| Frontend     | http://localhost:5173     |
+| Backend API  | http://localhost:3000     |
+
+### Stopping the application
 
 ```bash
-# Stop containers (keeps data)
+# Stop containers (data is preserved)
 docker compose down
 
-# Stop and remove volumes (resets database)
+# Stop and remove volumes (data will be deleted)
 docker compose down -v
 ```
 
-### Rebuild without starting
+## Configuration
+
+The backend is configured via `backend/.env`:
+
+| Variable       | Default value                                      | Description                                                                     |
+|----------------|----------------------------------------------------|---------------------------------------------------------------------------------|
+| `DATABASE_URL` | `file:/app/data/dev.db`                            | Path to the SQLite database file inside the container                           |
+| `JWT_SECRET`   | `change-this-to-a-random-secret-before-deploying`  | Secret key for JWT signing – must be changed before the first start             |
+| `PORT`         | `3000`                                             | Port of the backend server                                                      |
+
+Recommended way to generate a secure JWT secret:
 
 ```bash
-docker compose build
+openssl rand -base64 48
 ```
 
-### View logs
+The frontend does not require a separate `.env` file. The proxy target (`http://backend:3000`) is hardcoded in [frontend/lernzeit-manager/vite.config.ts](frontend/lernzeit-manager/vite.config.ts) and works within the Docker network.
 
-```bash
-# All services
-docker compose logs -f
+## Demo Account
 
-# Single service
-docker compose logs -f backend
-docker compose logs -f frontend
+On first startup, the application automatically creates a demo account with sample data:
+
+| Field     | Value              |
+|-----------|--------------------|
+| Email     | demo@lernzeit.de   |
+| Password  | demo1234           |
+
+The demo account includes the following sample data:
+
+- 3 learning goals (e.g. "Learn TypeScript", "Deepen React knowledge")
+- 1 study plan with 6 monthly plans (January–June)
+- 5 completed study sessions
+- 2 reminders
+
+The demo account is for demonstration purposes only. Use the **Register** button to create your own account.
+
+## System Architecture
+
+The Lernzeit-Manager follows a classic client-server architecture with two independent services orchestrated via Docker Compose.
+
+```
+Browser
+└── React SPA (Vite, port 5173)
+        │ HTTP /api/*  (Vite proxy → http://backend:3000)
+        ▼
+    Backend
+    └── Express.js REST API (Node.js, port 3000)
+            │ Prisma ORM
+            ▼
+        Database
+        └── SQLite (file: /app/data/dev.db, Docker volume)
 ```
 
-## Running Locally (without Docker)
-
-### Prerequisites
-
-- Node.js 18+ (backend) / Node.js 22+ (frontend)
-- npm
-
-### Backend
-
-```bash
-cd backend
-npm install
-npx prisma migrate dev   # Apply database migrations
-npm run dev              # Starts on http://localhost:3000
-```
-
-### Frontend
-
-```bash
-cd frontend/lernzeit-manager
-npm install
-npm run dev              # Starts on http://localhost:5173
-```
-
-## Database
-
-The project uses SQLite with Prisma. The database file is created at `backend/dev.db`.
-
-
-### Prisma commands
-
-```bash
-cd backend
-
-npx prisma migrate dev       # Create and apply a new migration
-npx prisma migrate deploy    # Apply migrations in production
-npx prisma studio            # Open the database GUI at http://localhost:5555
-```
-
-## Environment Variables
-
-The backend reads from `backend/.env`:
-
-```env
-DATABASE_URL="file:./dev.db"
-```
-
-No additional environment variables are required for local development.
-
-## API
-
-| Method | Path | Description              |
-|--------|------|--------------------------|
-| GET    | `/`  | Health check             |
-
-## Development Scripts
-
-### Backend (`cd backend`)
-
-| Command           | Description                      |
-|-------------------|----------------------------------|
-| `npm run dev`     | Start with auto-reload (Nodemon) |
-
-### Frontend (`cd frontend/lernzeit-manager`)
-
-| Command             | Description                        |
-|---------------------|------------------------------------|
-| `npm run dev`       | Start Vite dev server              |
-| `npm run build`     | Compile TypeScript + production build |
-| `npm run preview`   | Preview the production build locally  |
-| `npm run lint`      | Run ESLint                         |
+The frontend communicates with the backend exclusively through the Vite proxy setup. All browser requests to `/api/*` are forwarded by the proxy to `http://backend:3000`.
