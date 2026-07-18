@@ -29,6 +29,7 @@ export default function GoalsView() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editEndDate, setEditEndDate] = useState('');
+  const [editTargetHours, setEditTargetHours] = useState('1');
   const [editError, setEditError] = useState('');
 
   const fetchGoals = useCallback(async () => {
@@ -82,6 +83,7 @@ export default function GoalsView() {
     setEditingId(g.id);
     setEditTitle(g.title);
     setEditEndDate(g.endDate ? g.endDate.slice(0, 10) : '');
+    setEditTargetHours(String(g.targetHours ?? 1));
   };
 
   const saveEdit = async () => {
@@ -91,10 +93,19 @@ export default function GoalsView() {
       setEditError('Bitte gib einen Titel ein');
       return;
     }
+    if (!editTargetHours || Number(editTargetHours) <= 0) {
+      setError('');
+      setEditError('Bitte gib gültige Zielstunden ein');
+      return;
+    }
 
     setEditError('');
     try {
-      await api.put(`/goals/${editingId}`, { title: editTitle, endDate: editEndDate || undefined });
+      await api.put(`/goals/${editingId}`, {
+        title: editTitle,
+        endDate: editEndDate || undefined,
+        targetHours: parseFloat(editTargetHours) || 1,
+      });
       setEditingId(null);
       fetchGoals();
     } catch (e) {
@@ -196,13 +207,21 @@ export default function GoalsView() {
                       {editError && (
                         <p className="text-sm text-rose-700">{editError}</p>
                       )}
-                      <div className="flex items-center gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <input
                           type="date" value={editEndDate} onChange={(e) => setEditEndDate(e.target.value)}
-                          className="w-40 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                          className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
                         />
-                        <button onClick={saveEdit} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"><Save className="w-4 h-4" /></button>
-                        <button onClick={() => { setEditingId(null); setEditError(''); }} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"><X className="w-4 h-4" /></button>
+                        <input
+                          type="number" min="0.5" step="0.5" value={editTargetHours}
+                          onChange={(e) => setEditTargetHours(e.target.value)}
+                          className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                          placeholder="Zielstunden"
+                        />
+                        <div className="flex items-center gap-1">
+                          <button onClick={saveEdit} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"><Save className="w-4 h-4" /></button>
+                          <button onClick={() => { setEditingId(null); setEditError(''); }} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"><X className="w-4 h-4" /></button>
+                        </div>
                       </div>
                     </div>
                   ) : (
